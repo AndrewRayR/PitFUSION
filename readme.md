@@ -52,6 +52,37 @@ const TBA\_KEY   = 'YOUR\_TBA\_KEY';
 
 This is the only file you need to edit for initial setup.
 
+### 2.5 Optional: Lovat + Meshtastic Opponent Intel
+
+PitFUSION can ingest pre-digested opponent intel from a local bridge at `http://localhost:8090/api/next-match-intel`.
+
+1. Copy `.env.example` to `.env`
+2. Fill in:
+   - `TBA_KEY`
+   - `TBA_EVENT_KEY`
+   - `PIT_TEAM_NUMBER` (default `1895`)
+   - `INTEL_HMAC_SECRET`
+   - `MESHTASTIC_PORT` (for example `COM5`)
+3. Install bridge dependencies:
+
+```bash
+pip install -r tools/requirements.txt
+```
+
+4. Start PitFUSION with `Start PitFUSION.bat` (it launches the bridge + web server).
+
+For the internet-connected sender node (second PC + Heltec), run:
+
+```bash
+python tools/lovat_mesh_sender.py
+```
+
+Simulator options (no radio required):
+
+```bash
+python tools/lovat_mesh_sender.py --simulate --simulate-no-radio --once
+```
+
 ### 3\. Add a Logo (Optional)
 
 Place any of these files in the **same folder** as `PitFUSION.html` and it will appear automatically on the setup screen above the wordmark:
@@ -94,12 +125,18 @@ Your team number, event code, theme, and font size are saved automatically and r
 |`PitFUSION.html`|The entire application|
 |`config.js`|API keys and EPA field configuration — **edit this file**|
 |`Start PitFUSION.bat`|Windows launcher — double-click to start|
+|`.env.example`|Template for bridge/sender secrets and Meshtastic settings|
+|`tools/lovat_mesh_bridge.py`|Pit-side receiver bridge (Meshtastic → local API)|
+|`tools/lovat_mesh_sender.py`|Internet-side sender (Lovat/TBA → Meshtastic)|
+|`tools/requirements.txt`|Python dependencies for bridge/sender|
 |`logo.png` (optional)|Team logo shown on setup screen|
 |`FRC88Background.png` (optional)|Required only for the TJ² theme|
 |`\[your-bg-image]` (optional)|Background image for the Custom theme|
 |`check.html|Tests your API keys from config.js, and reports if they are working|
 
 All files must be in the same folder.
+
+> Keep `.env` local and do not commit it.
 
 \---
 
@@ -259,4 +296,3 @@ Built on the shoulders of these excellent tools and communities:
 ## License
 
 MIT — free to use, modify, and share. Attribution appreciated.
-

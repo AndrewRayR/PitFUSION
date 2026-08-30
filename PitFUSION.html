@@ -158,7 +158,7 @@ body.custom-has-bg[data-theme="custom"] .tp{
 }
 
 /* Setup page z-index handled by its own rule (10000) */
-#app{display:grid;grid-template-rows:var(--hdr-h) 1fr var(--ftr-h);width:100vw;height:100vh;overflow:hidden}
+#app{display:grid;grid-template-rows:var(--hdr-h) auto 1fr var(--ftr-h);width:100vw;height:100vh;overflow:hidden}
 
 /* HEADER */
 .hdr{background:var(--surface);border-bottom:3px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);gap:12px;overflow:hidden}
@@ -203,6 +203,9 @@ body.custom-has-bg[data-theme="custom"] .tp{
 .ldot.off{background:var(--red);box-shadow:0 0 7px var(--red);animation:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 .hdr-clk{font-family:var(--fm);font-size:var(--fs-hdr);color:var(--text-mid);white-space:nowrap}
+.intel-warning-banner{display:none;background:rgba(255,23,68,.13);border-bottom:2px solid rgba(255,23,68,.4);padding:7px var(--pad);font-family:var(--fd);font-size:var(--fs-lbl);font-weight:700;color:#ffb3c1;letter-spacing:.03em}
+.intel-warning-banner.show{display:block}
+[data-theme="tj2"] .intel-warning-banner{background:rgba(245,192,0,.18);border-bottom-color:rgba(245,192,0,.45);color:#ffefb3}
 
 /* BODY */
 .body{display:grid;grid-template-columns:1fr 5px 380px;overflow:hidden;min-height:0}
@@ -997,6 +1000,19 @@ body.custom-has-bg[data-theme="custom"] .tp{
 .nm-chips{display:flex;gap:4px;flex-wrap:wrap}
 .nm-none{font-family:var(--fd);font-size:var(--fs-sm);color:var(--text-dim)}
 .nm-queue{font-family:var(--fm);font-size:var(--fs-sm);color:var(--text-dim);margin-top:4px}
+.nm-intel-card{margin-top:8px;border:1px solid var(--border2);border-radius:6px;padding:8px;background:rgba(0,0,0,.12)}
+.nm-intel-title{font-family:var(--fd);font-size:var(--fs-sm);font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.nm-intel-row{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border2)}
+.nm-intel-row:first-of-type{border-top:none;padding-top:2px}
+.nm-intel-team{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--text)}
+.nm-intel-summary,.nm-intel-note{font-family:var(--fd);font-size:var(--fs-sm);color:var(--text);line-height:1.35}
+.nm-intel-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.nm-intel-tag{font-family:var(--fd);font-size:var(--fs-sm);font-weight:700;border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--text-dim)}
+.nm-intel-warn{margin-top:8px;border:1px solid rgba(255,23,68,.45);border-radius:6px;padding:8px;background:rgba(255,23,68,.12);font-family:var(--fd);font-size:var(--fs-sm);color:#ffb3c1}
+[data-theme="tj2"] .nm-intel-card{background:rgba(13,30,61,.38);border-color:rgba(255,255,255,.2)}
+[data-theme="tj2"] .nm-intel-title{color:#f5c000}
+[data-theme="tj2"] .nm-intel-tag{border-color:rgba(255,255,255,.24);color:#fff3ca}
+[data-theme="tj2"] .nm-intel-warn{background:rgba(245,192,0,.15);border-color:rgba(245,192,0,.45);color:#ffefb3}
 
 /* BRACKET ALLIANCE LEGEND — 4×2 grid of cards */
 .bkt-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px var(--pad);border-top:2px solid var(--border);background:var(--surface);flex-shrink:0}
@@ -1195,6 +1211,7 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <div class="live-pill"><div class="ldot" id="ldot"></div><span id="ltxt">Live</span></div>
     </div>
   </div>
+  <div id="intel-warning-banner" class="intel-warning-banner"></div>
 
   <div class="body" id="body-row">
     <div class="col-l" id="col-l">
@@ -1354,6 +1371,13 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
 // ============================================================
 
 const C={team:'',event:'',nexus:NEXUS_KEY,tba:TBA_KEY};
+const INTEL_CFG = {
+  enabled: typeof LOVAT_INTEL_ENABLED !== 'undefined' ? !!LOVAT_INTEL_ENABLED : true,
+  endpoint: typeof LOVAT_INTEL_ENDPOINT !== 'undefined' ? LOVAT_INTEL_ENDPOINT : 'http://localhost:8090/api/next-match-intel',
+  pollMs: typeof LOVAT_INTEL_POLL_MS !== 'undefined' ? LOVAT_INTEL_POLL_MS : 10000
+};
+let lovatIntelState = { available:false, reason:'not_checked', opponents:[], matchKey:null, tbaNextMatchKey:null };
+let lovatIntelPollId = null;
 
 // ── SETUP PAGE ───────────────────────────────────────────────────────────────
 
@@ -1620,6 +1644,112 @@ const hn=k=>({'Nexus-Api-Key':k});
 const ht=k=>({'X-TBA-Auth-Key':k});
 async function get(url,h){const r=await fetch(url,{headers:h});if(!r.ok)throw r.status;return r.json();}
 
+function expectedNextTbaMatchKey(){
+  if(!tbaMx?.length||!C.team) return null;
+  const mine=tbaMx
+    .filter(m=>{
+      if(m.actual_time!=null) return false;
+      const r=(m.alliances?.red?.team_keys||[]);
+      const bl=(m.alliances?.blue?.team_keys||[]);
+      const me=`frc${C.team}`;
+      return r.includes(me)||bl.includes(me);
+    })
+    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0));
+  return mine[0]?.key||null;
+}
+
+function intelWarningMessage(reason){
+  const map={
+    not_checked:'Waiting for opponent intel bridge…',
+    bridge_unreachable:'Opponent intel bridge is unreachable',
+    no_payload:'No opponent intel packet received yet',
+    no_next_match:'No next match currently known',
+    stale_payload:'Opponent intel is stale',
+    expired_payload:'Opponent intel has expired',
+    match_mismatch:'Opponent intel does not match TBA next match',
+    event_mismatch:'Opponent intel event does not match current event',
+    signature_mismatch:'Opponent intel signature mismatch',
+    missing_hmac_secret:'Bridge HMAC secret is missing',
+    missing_signature:'Opponent intel is unsigned',
+    unsupported_schema:'Opponent intel schema is unsupported',
+    invalid_payload:'Opponent intel payload is invalid',
+    invalid_generated_at:'Opponent intel timestamp is invalid',
+    meshtastic_dependency_missing:'Bridge is missing Meshtastic dependency',
+    packet_parse_error:'Bridge could not parse incoming packet'
+  };
+  return map[reason]||'Opponent intel unavailable';
+}
+
+function updateIntelBanner(){
+  const el=document.getElementById('intel-warning-banner');
+  if(!el) return;
+  const next=expectedNextTbaMatchKey();
+  if(!INTEL_CFG.enabled||!next){
+    el.classList.remove('show');
+    el.textContent='';
+    return;
+  }
+  if(lovatIntelState.available){
+    el.classList.remove('show');
+    el.textContent='';
+    return;
+  }
+  el.textContent='⚠ '+intelWarningMessage(lovatIntelState.reason);
+  el.classList.add('show');
+}
+
+async function fetchLovatIntel(){
+  if(!INTEL_CFG.enabled) return;
+  try{
+    const r=await fetch(INTEL_CFG.endpoint,{cache:'no-store'});
+    if(!r.ok) throw new Error(String(r.status));
+    const data=await r.json();
+    lovatIntelState={
+      available:!!data.available,
+      reason:data.reason||'unknown',
+      opponents:Array.isArray(data.opponents)?data.opponents:[],
+      matchKey:data.matchKey||null,
+      tbaNextMatchKey:data.tbaNextMatchKey||null
+    };
+  }catch{
+    lovatIntelState={available:false,reason:'bridge_unreachable',opponents:[],matchKey:null,tbaNextMatchKey:null};
+  }
+  updateIntelBanner();
+  rTeam();
+}
+
+function startLovatIntelPolling(){
+  if(!INTEL_CFG.enabled) return;
+  fetchLovatIntel();
+  clearInterval(lovatIntelPollId);
+  lovatIntelPollId=setInterval(fetchLovatIntel, Math.max(3000, Number(INTEL_CFG.pollMs)||10000));
+}
+
+function renderOpponentIntelBlock(expectedMatchKey){
+  if(!INTEL_CFG.enabled) return '';
+  if(!expectedMatchKey) return '';
+  if(!lovatIntelState.available){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(lovatIntelState.reason))}</div>`;
+  }
+  if(lovatIntelState.matchKey!==expectedMatchKey){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('match_mismatch'))}</div>`;
+  }
+  const opponents=(lovatIntelState.opponents||[]).slice(0,3);
+  if(!opponents.length){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('no_payload'))}</div>`;
+  }
+  const rows=opponents.map(o=>{
+    const tags=(o.tags||[]).slice(0,3).map(t=>`<span class="nm-intel-tag">${e(t)}</span>`).join('');
+    return `<div class="nm-intel-row">
+      <div class="nm-intel-team">Team ${e(o.team||'?')}</div>
+      <div class="nm-intel-summary">${e(o.summary||'No summary')}</div>
+      ${tags?`<div class="nm-intel-tags">${tags}</div>`:''}
+      ${o.notes?`<div class="nm-intel-note">${e(o.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+  return `<div class="nm-intel-card"><div class="nm-intel-title">Next Match Opponent Intel</div>${rows}</div>`;
+}
+
 async function nexusGet(key){return get(`https://frc.nexus/api/v1/event/${key}`,hn(C.nexus));}
 function nxKey(){return C.nexusEvent||C.event;}
 
@@ -1673,11 +1803,12 @@ async function init(){
   await Promise.all([fPits(),fMx(),fRk(),fAlliances(),fTi(),fEv()]);
   document.getElementById('lo').style.display='none';
   renderAll(); startCd();
+  startLovatIntelPolling();
   setInterval(async()=>{await Promise.all([fNexus(),fPits()]);rQ();rMl();rAlerts();rUpcoming();updateBumperBox();stamp();if(bracketView)rBracket();},15000);
-  setInterval(async()=>{await Promise.all([fMx(),fRk(),fAlliances(),fTi()]);rMl();rRank();rTeam();if(bracketView)rBracket();updateBumperBox();stamp();},30000);
+  setInterval(async()=>{await Promise.all([fMx(),fRk(),fAlliances(),fTi()]);rMl();rRank();rTeam();updateIntelBanner();if(bracketView)rBracket();updateBumperBox();stamp();},30000);
 }
 
-function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();updateBumperBox();stamp();}
+function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();updateBumperBox();stamp();updateIntelBanner();}
 
 // HEADER COUNTDOWN
 function startCd(){clearInterval(cdTick);cdTick=setInterval(tickCd,1000);tickCd();}
@@ -2088,6 +2219,7 @@ function rTeam(){
     const r=nxt.redTeams||[],bl=nxt.blueTeams||[],isR=r.includes(myT),ac=isR?'var(--red-a)':'var(--blue-a)',al=isR?'Red Alliance':'Blue Alliance';
     const part=(isR?r:bl).filter(t=>t!==myT),opp=isR?bl:r;
     const queueStr=ts2(nxt)!=='&mdash;'?`<div class="nm-queue">Est. queue: ${ts2(nxt)}</div>`:'';
+    const intelBlock=renderOpponentIntelBlock(expectedNextTbaMatchKey());
     html+=`<div class="sbl">Next Match</div>
     <div class="nm-card ${isR?'nm-red':'nm-blue'}">
       <div class="nm-header">
@@ -2100,6 +2232,7 @@ function rTeam(){
       <div class="nm-section-lbl" style="margin-top:8px">Opponents</div>
       <div class="nm-chips">${opp.map(t=>`<span class="chip ${isR?'cb':'cr'}">${e(t)}</span>`).join('')}</div>
       ${queueStr}
+      ${intelBlock}
     </div>`;
   }
   if(played.length){

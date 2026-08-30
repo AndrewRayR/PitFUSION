@@ -213,6 +213,15 @@
     <div class="checks" id="nexus-checks"></div>
   </div>
 
+  <!-- Local bridge card -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-name">Local Intel Bridge</span>
+      <span class="status-pill pill-pending" id="bridge-pill">Checking…</span>
+    </div>
+    <div class="checks" id="bridge-checks"></div>
+  </div>
+
 </div>
 
 <button class="recheck-btn" id="recheck-btn" onclick="runAll()">↻ Re-check</button>
@@ -221,6 +230,9 @@
 <script>
 const TBA   = (typeof TBA_KEY   !== 'undefined') ? TBA_KEY   : null;
 const NEXUS = (typeof NEXUS_KEY !== 'undefined') ? NEXUS_KEY : null;
+const LOVAT_INTEL_URL = (typeof LOVAT_INTEL_ENDPOINT !== 'undefined')
+  ? LOVAT_INTEL_ENDPOINT
+  : 'http://localhost:8090/api/next-match-intel';
 
 if(!TBA || !NEXUS) {
   document.getElementById('key-warning').style.display = 'block';
@@ -323,6 +335,46 @@ async function runNexus(container, pill) {
   setPill(pill, allOk ? 'ok' : (allOk === null ? 'warn' : 'fail'), allOk ? 'Online' : 'Issues');
 }
 
+async function runBridge(container, pill) {
+  container.innerHTML = row('⏳', 'Connecting…', '', '');
+  setPill(pill, 'pending', 'Checking…');
+
+  const tests = [
+    { label: 'Bridge reachable', url: LOVAT_INTEL_URL },
+  ];
+
+  let html = '';
+  let allOk = true;
+
+  for (const t of tests) {
+    const res = await checkEndpoint(t.url, {}, t.label);
+    const icon = res.ok ? '✅' : '❌';
+    const detail = res.ok
+      ? `HTTP ${res.status}`
+      : res.status === 0
+        ? `Network error: ${res.detail}`
+        : `HTTP ${res.status}${res.detail ? ': ' + res.detail : ''}`;
+    html += row(icon, t.label, detail, res.ms);
+    if (!res.ok) allOk = false;
+  }
+
+  if (allOk) {
+    try {
+      const intel = await fetch(LOVAT_INTEL_URL, { cache: 'no-store' }).then(r => r.json());
+      html += row(intel.available ? '✅' : '⚠️', 'Current status', `available=${!!intel.available}, reason=${intel.reason || 'unknown'}`);
+      html += row('ℹ️', 'Last packet', intel.lastPacketAt || 'none');
+      html += row('ℹ️', 'Signature valid', String(!!intel.lastSignatureValid));
+      html += row('ℹ️', 'Current match key', intel.matchKey || 'none');
+    } catch (e) {
+      html += row('⚠️', 'Status parse', String(e.message || e));
+      allOk = false;
+    }
+  }
+
+  container.innerHTML = html;
+  setPill(pill, allOk ? 'ok' : 'warn', allOk ? 'Online' : 'Issues');
+}
+
 async function runAll() {
   const btn = document.getElementById('recheck-btn');
   btn.disabled = true;
@@ -333,6 +385,7 @@ async function runAll() {
   await Promise.all([
     runTBA(document.getElementById('tba-checks'), 'tba-pill'),
     runNexus(document.getElementById('nexus-checks'), 'nexus-pill'),
+    runBridge(document.getElementById('bridge-checks'), 'bridge-pill'),
   ]);
 
   const now = new Date();

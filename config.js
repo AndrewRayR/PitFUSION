@@ -8,6 +8,12 @@
 const NEXUS_KEY = 'YOUR_NEXUS_KEY';
 const TBA_KEY   = 'YOUR_TBA_KEY';
 
+// ── Local Opponent Intel Bridge (frontend-safe) ────────────────
+// This endpoint is served by tools/lovat_mesh_bridge.py on pit PC.
+const LOVAT_INTEL_ENABLED  = true;
+const LOVAT_INTEL_ENDPOINT = 'http://localhost:8090/api/next-match-intel';
+const LOVAT_INTEL_POLL_MS  = 10000;
+
 // ── EPA Field Definitions by Year ────────────────────────────
 // Each year maps to the EPA breakdown fields returned by Statbotics.
 // The REST API endpoint is:

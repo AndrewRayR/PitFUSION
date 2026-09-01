@@ -48,13 +48,26 @@ Open `config.js` in any text editor and add your API keys:
 ```js
 const NEXUS\_KEY = 'YOUR\_NEXUS\_KEY';
 const TBA\_KEY   = 'YOUR\_TBA\_KEY';
+const LOVAT\_KEY = 'YOUR\_LOVAT\_KEY';
 ```
 
 This is the only file you need to edit for initial setup.
 
 ### 2.5 Optional: Lovat + Meshtastic Opponent Intel
 
-PitFUSION can ingest pre-digested opponent intel from a local bridge at `http://localhost:8090/api/next-match-intel`.
+PitFUSION supports two opponent-intel sources:
+
+- **Internet (default)** — direct browser API pull from `LOVAT_INTEL_INTERNET_ENDPOINT`
+- **Meshtastic** — local bridge at `LOVAT_INTEL_ENDPOINT` (default `http://localhost:8090/api/next-match-intel`)
+
+Set these in `config.js`:
+
+```js
+const LOVAT_INTEL_SOURCE_DEFAULT = 'internet'; // or 'meshtastic'
+const LOVAT_INTEL_INTERNET_ENDPOINT = 'https://your-api-host/next-match-intel';
+const LOVAT_INTEL_ENDPOINT = 'http://localhost:8090/api/next-match-intel';
+const LOVAT_KEY = 'YOUR_LOVAT_KEY';
+```
 
 1. Copy `.env.example` to `.env`
 2. Fill in:
@@ -112,9 +125,9 @@ Then open your browser to: **http://localhost:8080/PitFUSION.html**
 
 ### 5\. Launch
 
-On first load the **setup screen** appears. Enter your team number, select your event from the dropdown (it automatically filters to events your team is registered at this week), choose a theme, and click **Launch PitFUSION**.
+On first load the **setup screen** appears. Enter your team number, select your event from the dropdown (it automatically filters to events your team is registered at this week), choose your **Opponent Intel Source** (Internet or Meshtastic), choose a theme, and click **Launch PitFUSION**.
 
-Your team number, event code, theme, and font size are saved automatically and restored on the next reload.
+Your team number, event code, opponent intel source, theme, and font size are saved automatically and restored on the next reload.
 
 \---
 

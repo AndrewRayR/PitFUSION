@@ -1009,6 +1009,36 @@ body.custom-has-bg[data-theme="custom"] .tp{
 .nm-intel-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .nm-intel-tag{font-family:var(--fd);font-size:var(--fs-sm);font-weight:700;border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--text-dim)}
 .nm-intel-warn{margin-top:8px;border:1px solid rgba(255,23,68,.45);border-radius:6px;padding:8px;background:rgba(255,23,68,.12);font-family:var(--fd);font-size:var(--fs-sm);color:#ffb3c1}
+.lovat-auto-badge{display:block;margin-top:2px;font-family:var(--fm);font-size:var(--fs-sm);color:var(--yellow);line-height:1}
+.lovat-auto-badge.off{display:none}
+[data-theme="tj2"] .lovat-auto-badge{color:#f5c000}
+[data-theme="tj2"] #tab-lovat{background:#10213a}
+[data-theme="tj2"] #tab-lovat .sbl{color:#f5c000;border-color:rgba(255,255,255,.25)}
+[data-theme="tj2"] #tab-lovat .lov-card{background:rgba(20,60,130,.75);border-color:rgba(255,255,255,.2)}
+[data-theme="tj2"] #tab-lovat .lov-match{color:#fff}
+[data-theme="tj2"] #tab-lovat .lov-note{background:rgba(13,30,61,.7);border-color:rgba(255,255,255,.22);color:#fff}
+[data-theme="tj2"] #tab-lovat .lov-captain{background:rgba(13,30,61,.7);border-color:rgba(255,255,255,.22)}
+[data-theme="tj2"] #lovat-popup-window{background:rgba(13,30,61,.96);border-color:rgba(245,192,0,.4)}
+[data-theme="tj2"] #lovat-popup-window .sbl{color:#f5c000}
+[data-theme="tj2"] #lovat-popup-window .lov-card{background:rgba(20,60,130,.7);border-color:rgba(255,255,255,.2)}
+.lov-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.lov-meta{font-family:var(--fm);font-size:var(--fs-sm);color:var(--text-dim)}
+.lov-cards{display:flex;flex-direction:column;gap:8px}
+.lov-card{border:2px solid var(--border2);border-radius:var(--r);padding:9px 10px;background:var(--surface2)}
+.lov-match{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--accent)}
+.lov-alliances{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.lov-side-lbl{font-family:var(--fd);font-size:var(--fs-sm);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.lov-teams{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:700;color:var(--text)}
+.lov-intel{margin-top:7px}
+.lov-note{width:100%;resize:vertical;min-height:54px;max-height:160px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text);font-family:var(--fd);font-size:var(--fs-sm)}
+.lov-captain-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.lov-captain{border:1px solid var(--border2);border-radius:6px;padding:7px 9px;background:var(--surface2)}
+.lov-captain-h{display:flex;justify-content:space-between;gap:8px}
+.lov-captain-seed{font-family:var(--fd);font-size:var(--fs-sm);font-weight:900;color:var(--accent)}
+.lov-captain-team{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--text)}
+#lovat-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:flex-start;justify-content:center;padding-top:82px;z-index:7600}
+#lovat-popup-overlay.show{display:flex}
+#lovat-popup-window{width:min(980px,92vw);max-height:74vh;overflow:auto;background:var(--surface);border:2px solid var(--border2);border-radius:10px;padding:12px}
 [data-theme="tj2"] .nm-intel-card{background:rgba(13,30,61,.38);border-color:rgba(255,255,255,.2)}
 [data-theme="tj2"] .nm-intel-title{color:#f5c000}
 [data-theme="tj2"] .nm-intel-tag{border-color:rgba(255,255,255,.24);color:#fff3ca}
@@ -1266,6 +1296,7 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <div class="tab-bar">
         <button class="tab-btn act" onclick="switchTab('rankings',this)">Rankings</button>
         <button class="tab-btn" onclick="switchTab('team',this)">My Team</button>
+        <button class="tab-btn" onclick="switchTab('lovat',this)">Lovat<span class="lovat-auto-badge off" id="lovat-auto-badge">Auto: --:--</span></button>
         <button class="tab-btn" onclick="switchTab('alerts',this)">Alerts<div class="alert-icons"><span class="alert-icon-lbl alert-icon-ann dim" id="alert-icon-ann-1" style="font-size:11px">📢</span><span class="alert-icon-count alert-count-ann dim" id="alert-count-ann-1">0</span><span class="alert-icon-lbl alert-icon-parts dim" id="alert-icon-parts-1" style="font-size:11px">🔧</span><span class="alert-icon-count alert-count-parts dim" id="alert-count-parts-1">0</span></div></button>
       </div>
       <div class="tp act" id="tab-rankings">
@@ -1273,6 +1304,21 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
         <div id="rank-content"><div class="skel" style="width:100%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:88%"></div></div>
       </div>
       <div class="tp" id="tab-team"><div id="team-content"></div></div>
+      <div class="tp" id="tab-lovat">
+        <div class="sbl" style="margin-top:0">Lovat Match Intel</div>
+        <div class="lov-toolbar">
+          <button class="s-btn" onclick="openLovatPopup(true)">Open Next Match Window</button>
+          <span class="lov-meta" id="lovat-last-updated">Last updated: --</span>
+        </div>
+        <div class="lov-toolbar" style="margin-top:6px">
+          <span class="lov-meta" id="lovat-stale">Status: waiting</span>
+          <span class="lov-meta" id="lovat-mode">Mode: --</span>
+        </div>
+        <div class="sbl">Upcoming 3 Matches</div>
+        <div class="lov-cards" id="lovat-upcoming-list"><div class="empty">No upcoming match intel</div></div>
+        <div class="sbl">Captain Tracker</div>
+        <div id="lovat-captains-wrap"><div class="empty">Captain tracker inactive (waiting for end of quals).</div></div>
+      </div>
       <div class="tp" id="tab-alerts">
         <div class="sbl" style="margin-top:0">Announcements</div>
         <div id="ann-content"><div class="empty">No announcements</div></div>
@@ -1339,6 +1385,17 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <p>Queuing status, bumper colors, and next-match predictions are most likely to drift during Playoffs and Finals, where bracket assignments change in real time and Nexus may briefly stop reporting while a match is in progress.</p>
       <p>PitFUSION is a situational awareness tool. Always confirm match assignments and bumper colors with your drive coach or the queuing staff at the field.</p>
     </div>
+
+    <div id="lovat-popup-overlay" onclick="if(event.target===this)closeLovatPopup()">
+      <div id="lovat-popup-window">
+        <div class="lov-toolbar">
+          <div class="sbl" style="margin:0;border:none">Next Match Lovat Intel</div>
+          <button class="s-btn" onclick="closeLovatPopup()">Close</button>
+        </div>
+        <div class="lov-meta" id="lovat-popup-meta">Waiting for queue timing…</div>
+        <div class="lov-cards" id="lovat-popup-body" style="margin-top:8px"><div class="empty">No intel yet</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- SCHEDULE OVERLAY -->
@@ -1391,12 +1448,18 @@ const INTEL_CFG = {
 };
 let lovatIntelState = { available:false, reason:'not_checked', opponents:[], matchKey:null, tbaNextMatchKey:null };
 let lovatIntelPollId = null;
+let lovatIntelCache = {};
+let lovatAutoPopupDismissedMatchKey = null;
+let lovatAutoPopupShownMatchKey = null;
+let lovatLastUpdatedAt = null;
+let lovatLastSource = null;
 
 // ── SETUP PAGE ───────────────────────────────────────────────────────────────
 
 const LS_TEAM  = 'pitfusion_team';
 const LS_EVENT = 'pitfusion_event';
 const LS_INTEL_SOURCE = 'pitfusion_intel_source';
+const LS_LOVAT_NOTES = 'pitfusion_lovat_notes';
 
 // ── THEME ──────────────────────────────────────────────────────────────────
 const LS_THEME = 'pitfusion_theme';

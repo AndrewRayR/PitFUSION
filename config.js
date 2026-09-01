@@ -11,7 +11,10 @@ const TBA_KEY   = 'YOUR_TBA_KEY';
 // ── Local Opponent Intel Bridge (frontend-safe) ────────────────
 // This endpoint is served by tools/lovat_mesh_bridge.py on pit PC.
 const LOVAT_INTEL_ENABLED  = true;
+const LOVAT_INTEL_SOURCE_DEFAULT = 'internet'; // 'internet' or 'meshtastic'
 const LOVAT_INTEL_ENDPOINT = 'http://localhost:8090/api/next-match-intel';
+const LOVAT_INTEL_INTERNET_ENDPOINT = ''; // e.g. https://your-api-host/next-match-intel
+const LOVAT_KEY = 'YOUR_LOVAT_KEY';
 const LOVAT_INTEL_POLL_MS  = 10000;
 
 // ── EPA Field Definitions by Year ────────────────────────────

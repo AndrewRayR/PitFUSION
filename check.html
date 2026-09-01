@@ -222,6 +222,14 @@
     <div class="checks" id="bridge-checks"></div>
   </div>
 
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-name">Lovat Internet Intel</span>
+      <span class="status-pill pill-pending" id="lovat-pill">Checking…</span>
+    </div>
+    <div class="checks" id="lovat-checks"></div>
+  </div>
+
 </div>
 
 <button class="recheck-btn" id="recheck-btn" onclick="runAll()">↻ Re-check</button>
@@ -233,6 +241,13 @@ const NEXUS = (typeof NEXUS_KEY !== 'undefined') ? NEXUS_KEY : null;
 const LOVAT_INTEL_URL = (typeof LOVAT_INTEL_ENDPOINT !== 'undefined')
   ? LOVAT_INTEL_ENDPOINT
   : 'http://localhost:8090/api/next-match-intel';
+const LOVAT_SOURCE_DEFAULT = (typeof LOVAT_INTEL_SOURCE_DEFAULT !== 'undefined')
+  ? String(LOVAT_INTEL_SOURCE_DEFAULT).toLowerCase()
+  : 'internet';
+const LOVAT_INET_URL = (typeof LOVAT_INTEL_INTERNET_ENDPOINT !== 'undefined')
+  ? LOVAT_INTEL_INTERNET_ENDPOINT
+  : '';
+const LOVAT_KEY_CFG = (typeof LOVAT_KEY !== 'undefined') ? LOVAT_KEY : '';
 
 if(!TBA || !NEXUS) {
   document.getElementById('key-warning').style.display = 'block';
@@ -375,6 +390,60 @@ async function runBridge(container, pill) {
   setPill(pill, allOk ? 'ok' : 'warn', allOk ? 'Online' : 'Issues');
 }
 
+async function runLovatInternet(container, pill) {
+  container.innerHTML = row('⏳', 'Checking configuration…', '', '');
+  setPill(pill, 'pending', 'Checking…');
+
+  let html = '';
+  let allOk = true;
+  const srcHint = LOVAT_SOURCE_DEFAULT === 'meshtastic'
+    ? 'default source: meshtastic'
+    : 'default source: internet';
+  html += row('ℹ️', 'Source mode', srcHint);
+
+  if (!LOVAT_INET_URL) {
+    html += row('⚠️', 'Internet endpoint', 'Not configured (set LOVAT_INTEL_INTERNET_ENDPOINT in config.js)');
+    allOk = false;
+    container.innerHTML = html;
+    setPill(pill, 'warn', 'Config Needed');
+    return;
+  }
+
+  html += row('✅', 'Internet endpoint', LOVAT_INET_URL);
+
+  if (!LOVAT_KEY_CFG || /^YOUR_/i.test(LOVAT_KEY_CFG)) {
+    html += row('⚠️', 'Lovat API key', 'Missing or placeholder (set LOVAT_KEY in config.js)');
+    allOk = false;
+    container.innerHTML = html;
+    setPill(pill, 'warn', 'Config Needed');
+    return;
+  }
+
+  html += row('✅', 'Lovat API key', 'Configured');
+
+  const probeUrl = new URL(LOVAT_INET_URL, window.location.href);
+  probeUrl.searchParams.set('eventKey', '2026mawor');
+  probeUrl.searchParams.set('matchKey', '2026mawor_qm1');
+  probeUrl.searchParams.set('team', '1895');
+  probeUrl.searchParams.set('opponents', '88,1768,6328');
+  const res = await checkEndpoint(probeUrl.toString(), {
+    'X-API-Key': LOVAT_KEY_CFG,
+    'Lovat-Api-Key': LOVAT_KEY_CFG
+  }, 'Lovat internet request');
+
+  const icon = res.ok ? '✅' : '⚠️';
+  const detail = res.ok
+    ? `HTTP ${res.status}`
+    : res.status === 0
+      ? `Network error: ${res.detail}`
+      : `HTTP ${res.status}${res.detail ? ': ' + res.detail : ''}`;
+  html += row(icon, 'Lovat internet request', detail, res.ms);
+  if (!res.ok) allOk = false;
+
+  container.innerHTML = html;
+  setPill(pill, allOk ? 'ok' : 'warn', allOk ? 'Online' : 'Issues');
+}
+
 async function runAll() {
   const btn = document.getElementById('recheck-btn');
   btn.disabled = true;
@@ -386,6 +455,7 @@ async function runAll() {
     runTBA(document.getElementById('tba-checks'), 'tba-pill'),
     runNexus(document.getElementById('nexus-checks'), 'nexus-pill'),
     runBridge(document.getElementById('bridge-checks'), 'bridge-pill'),
+    runLovatInternet(document.getElementById('lovat-checks'), 'lovat-pill'),
   ]);
 
   const now = new Date();

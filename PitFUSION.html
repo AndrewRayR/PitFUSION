@@ -1162,6 +1162,15 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <div class="setup-err" id="setup-err">Please enter a team number and select or type an event code.</div>
     </div>
 
+    <div class="setup-field">
+      <label class="setup-label" for="setup-intel-source">Opponent Intel Source</label>
+      <select class="setup-select" id="setup-intel-source">
+        <option value="internet">Internet (default)</option>
+        <option value="meshtastic">Meshtastic bridge</option>
+      </select>
+      <div class="setup-hint">Internet pulls from the configured Lovat API endpoint. Meshtastic uses the local bridge endpoint.</div>
+    </div>
+
     <div class="setup-field theme-switcher">
       <label class="setup-label">Theme</label>
       <div class="theme-swatches" id="theme-swatches">
@@ -1373,8 +1382,12 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
 const C={team:'',event:'',nexus:NEXUS_KEY,tba:TBA_KEY};
 const INTEL_CFG = {
   enabled: typeof LOVAT_INTEL_ENABLED !== 'undefined' ? !!LOVAT_INTEL_ENABLED : true,
-  endpoint: typeof LOVAT_INTEL_ENDPOINT !== 'undefined' ? LOVAT_INTEL_ENDPOINT : 'http://localhost:8090/api/next-match-intel',
-  pollMs: typeof LOVAT_INTEL_POLL_MS !== 'undefined' ? LOVAT_INTEL_POLL_MS : 10000
+  sourceDefault: typeof LOVAT_INTEL_SOURCE_DEFAULT !== 'undefined' ? String(LOVAT_INTEL_SOURCE_DEFAULT).toLowerCase() : 'internet',
+  bridgeEndpoint: typeof LOVAT_INTEL_ENDPOINT !== 'undefined' ? LOVAT_INTEL_ENDPOINT : 'http://localhost:8090/api/next-match-intel',
+  internetEndpoint: typeof LOVAT_INTEL_INTERNET_ENDPOINT !== 'undefined' ? LOVAT_INTEL_INTERNET_ENDPOINT : '',
+  internetKey: typeof LOVAT_KEY !== 'undefined' ? LOVAT_KEY : '',
+  pollMs: typeof LOVAT_INTEL_POLL_MS !== 'undefined' ? LOVAT_INTEL_POLL_MS : 10000,
+  source: 'internet'
 };
 let lovatIntelState = { available:false, reason:'not_checked', opponents:[], matchKey:null, tbaNextMatchKey:null };
 let lovatIntelPollId = null;
@@ -1383,6 +1396,7 @@ let lovatIntelPollId = null;
 
 const LS_TEAM  = 'pitfusion_team';
 const LS_EVENT = 'pitfusion_event';
+const LS_INTEL_SOURCE = 'pitfusion_intel_source';
 
 // ── THEME ──────────────────────────────────────────────────────────────────
 const LS_THEME = 'pitfusion_theme';
@@ -1444,8 +1458,12 @@ function selectTheme(t, el){
 (function restoreSaved(){
   const t = localStorage.getItem(LS_TEAM);
   const ev = localStorage.getItem(LS_EVENT);
+  const src = (localStorage.getItem(LS_INTEL_SOURCE)||INTEL_CFG.sourceDefault||'internet').toLowerCase();
   if(t)  document.getElementById('setup-team').value  = t;
   if(ev) document.getElementById('setup-event-manual').value = ev;
+  INTEL_CFG.source = src === 'meshtastic' ? 'meshtastic' : 'internet';
+  const srcEl=document.getElementById('setup-intel-source');
+  if(srcEl) srcEl.value = INTEL_CFG.source;
 })();
 
 // ── EVENT DROPDOWN — team-aware filtering ────────────────────────────────────
@@ -1588,6 +1606,7 @@ function setupLaunch(){
   const teamInput = document.getElementById('setup-team').value.trim();
   const dropVal   = document.getElementById('setup-event-dropdown').value.trim();
   const manualVal = document.getElementById('setup-event-manual').value.trim().toLowerCase();
+  const intelSourceVal = (document.getElementById('setup-intel-source')?.value || INTEL_CFG.sourceDefault || 'internet').toLowerCase();
   const errEl     = document.getElementById('setup-err');
 
   const eventKey = manualVal || dropVal;
@@ -1604,9 +1623,11 @@ function setupLaunch(){
 
   localStorage.setItem(LS_TEAM,  teamInput);
   localStorage.setItem(LS_EVENT, eventKey);
+  localStorage.setItem(LS_INTEL_SOURCE, intelSourceVal === 'meshtastic' ? 'meshtastic' : 'internet');
 
   C.team  = teamInput;
   C.event = eventKey;
+  INTEL_CFG.source = intelSourceVal === 'meshtastic' ? 'meshtastic' : 'internet';
 
   document.getElementById('setup-page').classList.add('hidden');
   document.getElementById('app').style.display = '';
@@ -1660,8 +1681,11 @@ function expectedNextTbaMatchKey(){
 
 function intelWarningMessage(reason){
   const map={
-    not_checked:'Waiting for opponent intel bridge…',
+    not_checked:'Waiting for opponent intel…',
     bridge_unreachable:'Opponent intel bridge is unreachable',
+    internet_not_configured:'Internet intel endpoint is not configured',
+    internet_auth_missing:'Lovat internet API key is missing',
+    internet_api_error:'Internet intel API request failed',
     no_payload:'No opponent intel packet received yet',
     no_next_match:'No next match currently known',
     stale_payload:'Opponent intel is stale',
@@ -1678,6 +1702,54 @@ function intelWarningMessage(reason){
     packet_parse_error:'Bridge could not parse incoming packet'
   };
   return map[reason]||'Opponent intel unavailable';
+}
+
+function getNextMatchContext(){
+  if(!tbaMx?.length||!C.team) return null;
+  const me=`frc${C.team}`;
+  const mine=tbaMx
+    .filter(m=>{
+      if(m.actual_time!=null) return false;
+      const r=(m.alliances?.red?.team_keys||[]);
+      const bl=(m.alliances?.blue?.team_keys||[]);
+      return r.includes(me)||bl.includes(me);
+    })
+    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0));
+  const match=mine[0];
+  if(!match) return null;
+  const red=(match.alliances?.red?.team_keys||[]).map(k=>String(k).replace('frc',''));
+  const blue=(match.alliances?.blue?.team_keys||[]).map(k=>String(k).replace('frc',''));
+  const opponents=(match.alliances?.red?.team_keys||[]).includes(me)?blue:red;
+  return { matchKey: match.key||null, opponents: opponents.slice(0,3) };
+}
+
+function normalizeInternetIntel(data, expectedMatchKey, fallbackOpponents){
+  const list = Array.isArray(data?.opponents) ? data.opponents : (Array.isArray(data) ? data : []);
+  const parsed={};
+  list.forEach(row=>{
+    if(!row) return;
+    const team=String(row.team ?? row.teamNumber ?? row.t ?? row.team_key ?? '').replace('frc','');
+    if(!team) return;
+    parsed[team]={
+      team,
+      summary: String(row.summary ?? row.s ?? row.intel ?? 'Scouting summary unavailable'),
+      tags: Array.isArray(row.tags) ? row.tags.map(String).slice(0,3) : (Array.isArray(row.tg) ? row.tg.map(String).slice(0,3) : []),
+      notes: String(row.notes ?? row.n ?? '')
+    };
+  });
+  const normalized=(fallbackOpponents||[]).slice(0,3).map(team=>parsed[String(team)]||{
+    team:String(team),
+    summary:'Scouting data unavailable',
+    tags:['missing'],
+    notes:'No Lovat data row for this team'
+  });
+  return {
+    available: normalized.length>0,
+    reason: normalized.length>0 ? 'ok' : 'no_payload',
+    opponents: normalized,
+    matchKey: (data?.matchKey || data?.mk || expectedMatchKey || null),
+    tbaNextMatchKey: expectedMatchKey || null
+  };
 }
 
 function updateIntelBanner(){
@@ -1700,19 +1772,48 @@ function updateIntelBanner(){
 
 async function fetchLovatIntel(){
   if(!INTEL_CFG.enabled) return;
+  const ctx=getNextMatchContext();
+  if(!ctx?.matchKey){
+    lovatIntelState={available:false,reason:'no_next_match',opponents:[],matchKey:null,tbaNextMatchKey:null};
+    updateIntelBanner();
+    rTeam();
+    return;
+  }
   try{
-    const r=await fetch(INTEL_CFG.endpoint,{cache:'no-store'});
-    if(!r.ok) throw new Error(String(r.status));
-    const data=await r.json();
-    lovatIntelState={
-      available:!!data.available,
-      reason:data.reason||'unknown',
-      opponents:Array.isArray(data.opponents)?data.opponents:[],
-      matchKey:data.matchKey||null,
-      tbaNextMatchKey:data.tbaNextMatchKey||null
-    };
+    if(INTEL_CFG.source==='meshtastic'){
+      const r=await fetch(INTEL_CFG.bridgeEndpoint,{cache:'no-store'});
+      if(!r.ok) throw new Error(String(r.status));
+      const data=await r.json();
+      lovatIntelState={
+        available:!!data.available,
+        reason:data.reason||'unknown',
+        opponents:Array.isArray(data.opponents)?data.opponents:[],
+        matchKey:data.matchKey||null,
+        tbaNextMatchKey:data.tbaNextMatchKey||null
+      };
+    }else{
+      if(!INTEL_CFG.internetEndpoint){
+        lovatIntelState={available:false,reason:'internet_not_configured',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
+      } else if(!INTEL_CFG.internetKey || /^YOUR_/i.test(INTEL_CFG.internetKey)){
+        lovatIntelState={available:false,reason:'internet_auth_missing',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
+      } else {
+        const url = new URL(INTEL_CFG.internetEndpoint);
+        url.searchParams.set('eventKey', C.event);
+        url.searchParams.set('matchKey', ctx.matchKey);
+        url.searchParams.set('team', C.team);
+        url.searchParams.set('opponents', ctx.opponents.join(','));
+        const headers={
+          'X-API-Key': INTEL_CFG.internetKey,
+          'Lovat-Api-Key': INTEL_CFG.internetKey
+        };
+        const r=await fetch(url.toString(),{headers,cache:'no-store'});
+        if(!r.ok) throw new Error(String(r.status));
+        const data=await r.json();
+        lovatIntelState=normalizeInternetIntel(data, ctx.matchKey, ctx.opponents);
+      }
+    }
   }catch{
-    lovatIntelState={available:false,reason:'bridge_unreachable',opponents:[],matchKey:null,tbaNextMatchKey:null};
+    lovatIntelState={available:false,reason:INTEL_CFG.source==='meshtastic'?'bridge_unreachable':'internet_api_error',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
   }
   updateIntelBanner();
   rTeam();

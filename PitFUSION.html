@@ -1023,6 +1023,9 @@ body.custom-has-bg[data-theme="custom"] .tp{
 [data-theme="tj2"] #lovat-popup-window .lov-card{background:rgba(20,60,130,.7);border-color:rgba(255,255,255,.2)}
 .lov-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .lov-meta{font-family:var(--fm);font-size:var(--fs-sm);color:var(--text-dim)}
+.lov-meta.ok{color:var(--green)}
+.lov-meta.warn{color:var(--yellow)}
+.lov-meta.err{color:var(--red)}
 .lov-cards{display:flex;flex-direction:column;gap:8px}
 .lov-card{border:2px solid var(--border2);border-radius:var(--r);padding:9px 10px;background:var(--surface2)}
 .lov-match{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--accent)}
@@ -1308,6 +1311,7 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
         <div class="sbl" style="margin-top:0">Lovat Match Intel</div>
         <div class="lov-toolbar">
           <button class="s-btn" onclick="openLovatPopup(true)">Open Next Match Window</button>
+          <button class="s-btn" onclick="fetchLovatIntel()">Refresh Intel</button>
           <span class="lov-meta" id="lovat-last-updated">Last updated: --</span>
         </div>
         <div class="lov-toolbar" style="margin-top:6px">
@@ -1966,10 +1970,20 @@ function renderLovatPanel(){
   const mode=document.getElementById('lovat-mode');
   const last=document.getElementById('lovat-last-updated');
   if(mode) mode.textContent=`Mode: ${INTEL_CFG.source==='meshtastic'?'Meshtastic':'Internet'}`;
-  if(last) last.textContent=`Last updated: ${lovatLastUpdatedAt?new Date(lovatLastUpdatedAt).toLocaleTimeString():'--'}`;
+  if(last) last.textContent=`Last updated: ${lovatLastUpdatedAt?new Date(lovatLastUpdatedAt).toLocaleTimeString():'--'}${lovatLastSource?` · ${lovatLastSource}`:''}`;
   const age=lovatLastUpdatedAt?Math.floor((Date.now()-lovatLastUpdatedAt)/1000):null;
   if(stale){
-    stale.textContent=age==null?'Status: waiting':`Status: ${age>120?'stale':'fresh'} (${age}s ago)`;
+    stale.className='lov-meta';
+    if(age==null){
+      stale.textContent='Status: waiting';
+      stale.classList.add('warn');
+    }else if(age>120){
+      stale.textContent=`Status: stale (${age}s ago)`;
+      stale.classList.add('err');
+    }else{
+      stale.textContent=`Status: fresh (${age}s ago)`;
+      stale.classList.add('ok');
+    }
   }
   const matches=getMyUpcomingMatches(3);
   if(list){
@@ -1990,7 +2004,9 @@ function openLovatPopup(manual=false){
   } else {
     body.innerHTML=renderLovatMatchCard(nxt,true);
     const ms=getNextQueueCountdownMs();
-    meta.textContent=ms==null?'Queue timing unavailable':`Queue in ${Math.max(0,Math.floor(ms/60000))}:${String(Math.max(0,Math.floor(ms/1000)%60)).padStart(2,'0')}`;
+    const cd=ms==null?'Queue timing unavailable':`Queue in ${Math.max(0,Math.floor(ms/60000))}:${String(Math.max(0,Math.floor(ms/1000)%60)).padStart(2,'0')}`;
+    const lu=lovatLastUpdatedAt?` · Updated ${new Date(lovatLastUpdatedAt).toLocaleTimeString()}`:'';
+    meta.textContent=`${cd}${lu}`;
   }
   ov.classList.add('show');
   if(!manual&&nxt?.matchKey) lovatAutoPopupShownMatchKey=nxt.matchKey;

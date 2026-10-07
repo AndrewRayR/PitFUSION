@@ -1451,6 +1451,7 @@ let lovatIntelPollId = null;
 let lovatIntelCache = {};
 let lovatAutoPopupDismissedMatchKey = null;
 let lovatAutoPopupShownMatchKey = null;
+let lovatAutoPopupMatchKey = null;
 let lovatLastUpdatedAt = null;
 let lovatLastSource = null;
 
@@ -1767,23 +1768,74 @@ function intelWarningMessage(reason){
   return map[reason]||'Opponent intel unavailable';
 }
 
-function getNextMatchContext(){
-  if(!tbaMx?.length||!C.team) return null;
+function compLabel(m){
+  if(!m) return 'Match';
+  if(m.comp_level==='qm') return `Qual ${m.match_number}`;
+  if(m.comp_level==='sf') return `Playoff ${m.set_number||m.match_number||''}`.trim();
+  if(m.comp_level==='f')  return `Final ${m.match_number}`;
+  return m.key||'Match';
+}
+
+function getMyUpcomingMatches(limit=3){
+  if(!tbaMx?.length||!C.team) return [];
   const me=`frc${C.team}`;
-  const mine=tbaMx
+  return tbaMx
     .filter(m=>{
       if(m.actual_time!=null) return false;
       const r=(m.alliances?.red?.team_keys||[]);
       const bl=(m.alliances?.blue?.team_keys||[]);
       return r.includes(me)||bl.includes(me);
     })
-    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0));
-  const match=mine[0];
-  if(!match) return null;
-  const red=(match.alliances?.red?.team_keys||[]).map(k=>String(k).replace('frc',''));
-  const blue=(match.alliances?.blue?.team_keys||[]).map(k=>String(k).replace('frc',''));
-  const opponents=(match.alliances?.red?.team_keys||[]).includes(me)?blue:red;
-  return { matchKey: match.key||null, opponents: opponents.slice(0,3) };
+    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0))
+    .slice(0,limit)
+    .map(m=>{
+      const red=(m.alliances?.red?.team_keys||[]).map(k=>String(k).replace('frc',''));
+      const blue=(m.alliances?.blue?.team_keys||[]).map(k=>String(k).replace('frc',''));
+      const isRed=(m.alliances?.red?.team_keys||[]).includes(me);
+      const withTeams=(isRed?red:blue).filter(t=>t!==C.team);
+      const oppTeams=isRed?blue:red;
+      return {
+        raw:m,
+        matchKey:m.key||null,
+        label:compLabel(m),
+        withTeams,
+        oppTeams,
+        myAlliance:isRed?'red':'blue',
+      };
+    });
+}
+
+function getNextMatchContext(){
+  const m=getMyUpcomingMatches(1)[0];
+  if(!m) return null;
+  return { matchKey:m.matchKey, opponents:m.oppTeams.slice(0,3) };
+}
+
+function getNextQueueCountdownMs(){
+  if(!nxData?.matches?.length) return null;
+  const SKIP=new Set(['Completed','On field']);
+  const nxt=(nxData.matches||[]).find(m=>!SKIP.has(m.status)&&[...(m.redTeams||[]),...(m.blueTeams||[])].includes(C.team));
+  if(!nxt) return null;
+  const qt=nxt.times?.estimatedQueueTime||nxt.times?.actualQueueTime;
+  if(!qt) return null;
+  return qt-Date.now();
+}
+
+function loadLovatNotes(){
+  try{return JSON.parse(localStorage.getItem(LS_LOVAT_NOTES)||'{}')||{};}catch{return {};}
+}
+
+function saveLovatNote(matchKey,val){
+  if(!matchKey) return;
+  const notes=loadLovatNotes();
+  notes[matchKey]=String(val||'');
+  localStorage.setItem(LS_LOVAT_NOTES, JSON.stringify(notes));
+}
+
+function getLovatNote(matchKey){
+  if(!matchKey) return '';
+  const notes=loadLovatNotes();
+  return notes[matchKey]||'';
 }
 
 function normalizeInternetIntel(data, expectedMatchKey, fallbackOpponents){
@@ -1797,14 +1849,16 @@ function normalizeInternetIntel(data, expectedMatchKey, fallbackOpponents){
       team,
       summary: String(row.summary ?? row.s ?? row.intel ?? 'Scouting summary unavailable'),
       tags: Array.isArray(row.tags) ? row.tags.map(String).slice(0,3) : (Array.isArray(row.tg) ? row.tg.map(String).slice(0,3) : []),
-      notes: String(row.notes ?? row.n ?? '')
+      notes: String(row.notes ?? row.n ?? ''),
+      confidence: Number(row.confidence ?? row.c ?? row.score ?? NaN)
     };
   });
   const normalized=(fallbackOpponents||[]).slice(0,3).map(team=>parsed[String(team)]||{
     team:String(team),
     summary:'Scouting data unavailable',
     tags:['missing'],
-    notes:'No Lovat data row for this team'
+    notes:'No Lovat data row for this team',
+    confidence:NaN
   });
   return {
     available: normalized.length>0,
@@ -1833,12 +1887,172 @@ function updateIntelBanner(){
   el.classList.add('show');
 }
 
+function renderIntelRows(opponents){
+  const rows=(opponents||[]).slice(0,3).map(o=>{
+    const tags=(o.tags||[]).slice(0,3).map(t=>`<span class="nm-intel-tag">${e(t)}</span>`).join('');
+    const conf=Number.isFinite(Number(o.confidence)) ? `${Math.round(Number(o.confidence)*100)}%` : 'n/a';
+    return `<div class="nm-intel-row">
+      <div class="nm-intel-team">Team ${e(o.team||'?')} <span style="font-size:.9em;color:var(--text-dim)">Confidence: ${e(conf)}</span></div>
+      <div class="nm-intel-summary">${e(o.summary||'No summary')}</div>
+      ${tags?`<div class="nm-intel-tags">${tags}</div>`:''}
+      ${o.notes?`<div class="nm-intel-note">${e(o.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+  return rows||`<div class="nm-intel-warn">⚠ No intel rows</div>`;
+}
+
+function renderCaptainTracker(){
+  const wrap=document.getElementById('lovat-captains-wrap');
+  if(!wrap) return;
+  const rankings=tbaRk?.rankings||[];
+  if(!rankings.length){wrap.innerHTML='<div class="empty">No rankings data for captain tracker.</div>';return;}
+  const quals=(tbaMx||[]).filter(m=>m.comp_level==='qm');
+  const qualsDone=quals.length>0&&quals.every(m=>m.actual_time!=null);
+  const playoffsStarted=(tbaMx||[]).some(m=>m.comp_level!=='qm'&&m.actual_time!=null);
+  if(!qualsDone||playoffsStarted){
+    wrap.innerHTML='<div class="empty">Captain tracker inactive (waiting for end of quals).</div>';
+    return;
+  }
+  const allRanks=rankings.map(r=>String(r.team_key||'').replace('frc','')).filter(Boolean);
+  const picked=(tbaAlliances||[]).flatMap(a=>(a.picks||[]).map(k=>String(k).replace('frc','')));
+  const existingCaptains=(tbaAlliances||[]).map(a=>String((a.picks||[])[0]||'').replace('frc','')).filter(Boolean);
+  const captainCount=Math.min(8, allRanks.length);
+  const captains=[...existingCaptains];
+  for(const t of allRanks){
+    if(captains.length>=captainCount) break;
+    if(captains.includes(t)) continue;
+    if(picked.includes(t)) continue;
+    captains.push(t);
+  }
+  const rankMap={}; rankings.forEach(r=>{rankMap[String(r.team_key||'').replace('frc','')]=r;});
+  const cards=captains.map((team,idx)=>{
+    const rr=rankMap[team];
+    const rec=rr?.record?`${rr.record.wins}-${rr.record.losses}-${rr.record.ties}`:'—';
+    const al=(tbaAlliances||[]).find(a=>String((a.picks||[])[0]||'').replace('frc','')===team);
+    const picks=(al?.picks||[]).map(k=>String(k).replace('frc','')).slice(1);
+    return `<div class="lov-captain">
+      <div class="lov-captain-h"><span class="lov-captain-seed">Captain ${idx+1}</span><span class="lov-captain-team">${e(team)}</span></div>
+      <div class="lov-meta">Rank: ${e(String(rr?.rank||'—'))} · Record: ${e(rec)}</div>
+      <div class="lov-meta">Picks: ${picks.length?e(picks.join(' · ')):'(open slot)'}</div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="lov-captain-grid">${cards}</div>`;
+}
+
+function renderLovatMatchCard(m, compact=false){
+  const cached=lovatIntelCache[m.matchKey]||{};
+  const withTxt=m.withTeams.length?m.withTeams.join(' · '):'TBD';
+  const againstTxt=m.oppTeams.length?m.oppTeams.join(' · '):'TBD';
+  const note=getLovatNote(m.matchKey);
+  const safeKey=String(m.matchKey||'').replace(/'/g,"\\'");
+  const intelBlock=(cached.available&&cached.matchKey===m.matchKey)
+    ? `<div class="nm-intel-card"><div class="nm-intel-title">Opponent Intel</div>${renderIntelRows(cached.opponents||[])}</div>`
+    : `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(cached.reason||'no_payload'))}</div>`;
+  return `<div class="lov-card">
+    <div class="lov-match">${e(m.label)} <span style="font-size:.9em;color:var(--text-dim)">(${e(m.matchKey||'')})</span></div>
+    <div class="lov-alliances">
+      <div><div class="lov-side-lbl">With</div><div class="lov-teams">${e(withTxt)}</div></div>
+      <div><div class="lov-side-lbl">Against</div><div class="lov-teams">${e(againstTxt)}</div></div>
+    </div>
+    <div class="lov-intel">${intelBlock}</div>
+    ${compact?'':`<div class="lov-side-lbl" style="margin-top:7px">Pinned strategy notes</div>
+    <textarea class="lov-note" onchange="saveLovatNote('${safeKey}', this.value)" placeholder="Add strategy note for this match...">${e(note)}</textarea>`}
+  </div>`;
+}
+
+function renderLovatPanel(){
+  const list=document.getElementById('lovat-upcoming-list');
+  const stale=document.getElementById('lovat-stale');
+  const mode=document.getElementById('lovat-mode');
+  const last=document.getElementById('lovat-last-updated');
+  if(mode) mode.textContent=`Mode: ${INTEL_CFG.source==='meshtastic'?'Meshtastic':'Internet'}`;
+  if(last) last.textContent=`Last updated: ${lovatLastUpdatedAt?new Date(lovatLastUpdatedAt).toLocaleTimeString():'--'}`;
+  const age=lovatLastUpdatedAt?Math.floor((Date.now()-lovatLastUpdatedAt)/1000):null;
+  if(stale){
+    stale.textContent=age==null?'Status: waiting':`Status: ${age>120?'stale':'fresh'} (${age}s ago)`;
+  }
+  const matches=getMyUpcomingMatches(3);
+  if(list){
+    list.innerHTML=matches.length?matches.map(m=>renderLovatMatchCard(m,false)).join(''):'<div class="empty">No upcoming match intel</div>';
+  }
+  renderCaptainTracker();
+}
+
+function openLovatPopup(manual=false){
+  const ov=document.getElementById('lovat-popup-overlay');
+  const body=document.getElementById('lovat-popup-body');
+  const meta=document.getElementById('lovat-popup-meta');
+  const nxt=getMyUpcomingMatches(1)[0];
+  if(!ov||!body||!meta) return;
+  if(!nxt){
+    body.innerHTML='<div class="empty">No next match available.</div>';
+    meta.textContent='No queue timing data.';
+  } else {
+    body.innerHTML=renderLovatMatchCard(nxt,true);
+    const ms=getNextQueueCountdownMs();
+    meta.textContent=ms==null?'Queue timing unavailable':`Queue in ${Math.max(0,Math.floor(ms/60000))}:${String(Math.max(0,Math.floor(ms/1000)%60)).padStart(2,'0')}`;
+  }
+  ov.classList.add('show');
+  if(!manual&&nxt?.matchKey) lovatAutoPopupShownMatchKey=nxt.matchKey;
+}
+
+function closeLovatPopup(){
+  const ov=document.getElementById('lovat-popup-overlay');
+  if(ov) ov.classList.remove('show');
+  const nxt=getMyUpcomingMatches(1)[0];
+  if(nxt?.matchKey) lovatAutoPopupDismissedMatchKey=nxt.matchKey;
+}
+
+function updateLovatAutoOpen(){
+  const badge=document.getElementById('lovat-auto-badge');
+  const nxt=getMyUpcomingMatches(1)[0];
+  const ms=getNextQueueCountdownMs();
+  if(nxt?.matchKey && lovatAutoPopupMatchKey!==nxt.matchKey){
+    lovatAutoPopupMatchKey=nxt.matchKey;
+    lovatAutoPopupDismissedMatchKey=null;
+    lovatAutoPopupShownMatchKey=null;
+  }
+  if(!badge||!nxt||ms==null||ms<=0){
+    if(badge){badge.textContent='Auto: --:--';badge.classList.add('off');}
+    return;
+  }
+  const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60;
+  badge.textContent=`Auto: ${m}:${String(s).padStart(2,'0')}`;
+  badge.classList.remove('off');
+  if(ms<=300000&&lovatAutoPopupDismissedMatchKey!==nxt.matchKey&&lovatAutoPopupShownMatchKey!==nxt.matchKey){
+    openLovatPopup(false);
+  }
+}
+
+async function fetchInternetIntelForMatch(ctx){
+  if(!INTEL_CFG.internetEndpoint){
+    return {available:false,reason:'internet_not_configured',opponents:[],matchKey:ctx.matchKey,tbaNextMatchKey:ctx.matchKey};
+  }
+  if(!INTEL_CFG.internetKey || /^YOUR_/i.test(INTEL_CFG.internetKey)){
+    return {available:false,reason:'internet_auth_missing',opponents:[],matchKey:ctx.matchKey,tbaNextMatchKey:ctx.matchKey};
+  }
+  const url = new URL(INTEL_CFG.internetEndpoint);
+  url.searchParams.set('eventKey', C.event);
+  url.searchParams.set('matchKey', ctx.matchKey);
+  url.searchParams.set('team', C.team);
+  url.searchParams.set('opponents', (ctx.oppTeams||[]).join(','));
+  const headers={
+    'X-API-Key': INTEL_CFG.internetKey,
+    'Lovat-Api-Key': INTEL_CFG.internetKey
+  };
+  const r=await fetch(url.toString(),{headers,cache:'no-store'});
+  if(!r.ok) throw new Error(String(r.status));
+  const data=await r.json();
+  return normalizeInternetIntel(data, ctx.matchKey, ctx.oppTeams||[]);
+}
+
 async function fetchLovatIntel(){
   if(!INTEL_CFG.enabled) return;
-  const ctx=getNextMatchContext();
-  if(!ctx?.matchKey){
+  const matches=getMyUpcomingMatches(3);
+  if(!matches.length){
     lovatIntelState={available:false,reason:'no_next_match',opponents:[],matchKey:null,tbaNextMatchKey:null};
     updateIntelBanner();
+    renderLovatPanel();
     rTeam();
     return;
   }
@@ -1846,39 +2060,36 @@ async function fetchLovatIntel(){
     if(INTEL_CFG.source==='meshtastic'){
       const r=await fetch(INTEL_CFG.bridgeEndpoint,{cache:'no-store'});
       if(!r.ok) throw new Error(String(r.status));
-      const data=await r.json();
-      lovatIntelState={
-        available:!!data.available,
-        reason:data.reason||'unknown',
-        opponents:Array.isArray(data.opponents)?data.opponents:[],
-        matchKey:data.matchKey||null,
-        tbaNextMatchKey:data.tbaNextMatchKey||null
-      };
+      const bridge=await r.json();
+      matches.forEach(m=>{
+        if(bridge.available&&bridge.matchKey===m.matchKey){
+          lovatIntelCache[m.matchKey]={...bridge,updatedAt:Date.now(),source:'meshtastic'};
+        }else{
+          lovatIntelCache[m.matchKey]={available:false,reason:bridge.reason||'match_mismatch',opponents:[],matchKey:m.matchKey,updatedAt:Date.now(),source:'meshtastic'};
+        }
+      });
     }else{
-      if(!INTEL_CFG.internetEndpoint){
-        lovatIntelState={available:false,reason:'internet_not_configured',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
-      } else if(!INTEL_CFG.internetKey || /^YOUR_/i.test(INTEL_CFG.internetKey)){
-        lovatIntelState={available:false,reason:'internet_auth_missing',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
-      } else {
-        const url = new URL(INTEL_CFG.internetEndpoint);
-        url.searchParams.set('eventKey', C.event);
-        url.searchParams.set('matchKey', ctx.matchKey);
-        url.searchParams.set('team', C.team);
-        url.searchParams.set('opponents', ctx.opponents.join(','));
-        const headers={
-          'X-API-Key': INTEL_CFG.internetKey,
-          'Lovat-Api-Key': INTEL_CFG.internetKey
-        };
-        const r=await fetch(url.toString(),{headers,cache:'no-store'});
-        if(!r.ok) throw new Error(String(r.status));
-        const data=await r.json();
-        lovatIntelState=normalizeInternetIntel(data, ctx.matchKey, ctx.opponents);
-      }
+      await Promise.all(matches.map(async m=>{
+        try{
+          const data=await fetchInternetIntelForMatch(m);
+          lovatIntelCache[m.matchKey]={...data,updatedAt:Date.now(),source:'internet'};
+        }catch{
+          lovatIntelCache[m.matchKey]={available:false,reason:'internet_api_error',opponents:[],matchKey:m.matchKey,updatedAt:Date.now(),source:'internet'};
+        }
+      }));
     }
+    const nxt=matches[0];
+    lovatIntelState=lovatIntelCache[nxt.matchKey]||{available:false,reason:'no_payload',opponents:[],matchKey:nxt.matchKey};
+    lovatLastUpdatedAt=Date.now();
+    lovatLastSource=INTEL_CFG.source;
   }catch{
-    lovatIntelState={available:false,reason:INTEL_CFG.source==='meshtastic'?'bridge_unreachable':'internet_api_error',opponents:[],matchKey:null,tbaNextMatchKey:ctx.matchKey};
+    const nxt=matches[0];
+    lovatIntelState={available:false,reason:INTEL_CFG.source==='meshtastic'?'bridge_unreachable':'internet_api_error',opponents:[],matchKey:nxt?.matchKey||null,tbaNextMatchKey:nxt?.matchKey||null};
+    lovatLastUpdatedAt=Date.now();
   }
   updateIntelBanner();
+  renderLovatPanel();
+  updateLovatAutoOpen();
   rTeam();
 }
 
@@ -1892,26 +2103,18 @@ function startLovatIntelPolling(){
 function renderOpponentIntelBlock(expectedMatchKey){
   if(!INTEL_CFG.enabled) return '';
   if(!expectedMatchKey) return '';
-  if(!lovatIntelState.available){
-    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(lovatIntelState.reason))}</div>`;
+  const src=lovatIntelCache[expectedMatchKey]||lovatIntelState;
+  if(!src?.available){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(src?.reason||'no_payload'))}</div>`;
   }
-  if(lovatIntelState.matchKey!==expectedMatchKey){
+  if(src.matchKey!==expectedMatchKey){
     return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('match_mismatch'))}</div>`;
   }
-  const opponents=(lovatIntelState.opponents||[]).slice(0,3);
+  const opponents=(src.opponents||[]).slice(0,3);
   if(!opponents.length){
     return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('no_payload'))}</div>`;
   }
-  const rows=opponents.map(o=>{
-    const tags=(o.tags||[]).slice(0,3).map(t=>`<span class="nm-intel-tag">${e(t)}</span>`).join('');
-    return `<div class="nm-intel-row">
-      <div class="nm-intel-team">Team ${e(o.team||'?')}</div>
-      <div class="nm-intel-summary">${e(o.summary||'No summary')}</div>
-      ${tags?`<div class="nm-intel-tags">${tags}</div>`:''}
-      ${o.notes?`<div class="nm-intel-note">${e(o.notes)}</div>`:''}
-    </div>`;
-  }).join('');
-  return `<div class="nm-intel-card"><div class="nm-intel-title">Next Match Opponent Intel</div>${rows}</div>`;
+  return `<div class="nm-intel-card"><div class="nm-intel-title">Next Match Opponent Intel</div>${renderIntelRows(opponents)}</div>`;
 }
 
 async function nexusGet(key){return get(`https://frc.nexus/api/v1/event/${key}`,hn(C.nexus));}
@@ -1968,16 +2171,17 @@ async function init(){
   document.getElementById('lo').style.display='none';
   renderAll(); startCd();
   startLovatIntelPolling();
-  setInterval(async()=>{await Promise.all([fNexus(),fPits()]);rQ();rMl();rAlerts();rUpcoming();updateBumperBox();stamp();if(bracketView)rBracket();},15000);
-  setInterval(async()=>{await Promise.all([fMx(),fRk(),fAlliances(),fTi()]);rMl();rRank();rTeam();updateIntelBanner();if(bracketView)rBracket();updateBumperBox();stamp();},30000);
+  setInterval(async()=>{await Promise.all([fNexus(),fPits()]);rQ();rMl();rAlerts();rUpcoming();renderLovatPanel();updateLovatAutoOpen();updateBumperBox();stamp();if(bracketView)rBracket();},15000);
+  setInterval(async()=>{await Promise.all([fMx(),fRk(),fAlliances(),fTi()]);rMl();rRank();rTeam();renderLovatPanel();updateIntelBanner();updateLovatAutoOpen();if(bracketView)rBracket();updateBumperBox();stamp();},30000);
 }
 
-function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();updateBumperBox();stamp();updateIntelBanner();}
+function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();renderLovatPanel();updateLovatAutoOpen();updateBumperBox();stamp();updateIntelBanner();}
 
 // HEADER COUNTDOWN
 function startCd(){clearInterval(cdTick);cdTick=setInterval(tickCd,1000);tickCd();}
 function tickCd(){
   const wrap=document.getElementById('hdr-cd');
+  updateLovatAutoOpen();
   if(!nxData){wrap.innerHTML='';return;}
   // If Nexus isn't actively queuing, don't show countdown
   const nowQ=nxData.nowQueuing;
@@ -2766,9 +2970,10 @@ function toggleBracket(){
     bktPnl.style.flex    = '1';
     bktPnl.style.minHeight = '0';
 
-    // 4. Sidebar: hide Rankings + My Team, show Queuing tab
+    // 4. Sidebar: hide Rankings + My Team + Lovat, show Queuing tab
     document.getElementById('tab-rankings').style.display = 'none';
     document.getElementById('tab-team').style.display     = 'none';
+    document.getElementById('tab-lovat').style.display    = 'none';
     rebuildTabBar(true);
     switchTabById('tab-queuing');
     syncQueueingToSidebar();
@@ -2801,6 +3006,7 @@ function toggleBracket(){
     // Restore sidebar
     document.getElementById('tab-rankings').style.display = '';
     document.getElementById('tab-team').style.display     = '';
+    document.getElementById('tab-lovat').style.display    = '';
     document.getElementById('tab-queuing').style.display  = 'none';
     document.getElementById('tab-queuing').classList.remove('act');
     rebuildTabBar(false);
@@ -2831,9 +3037,11 @@ function rebuildTabBar(bracketMode){
     bar.innerHTML=`
       <button class="tab-btn act" onclick="switchTabById('tab-rankings',this)">Rankings</button>
       <button class="tab-btn" onclick="switchTabById('tab-team',this)">My Team</button>
+      <button class="tab-btn" onclick="switchTabById('tab-lovat',this)">Lovat<span class="lovat-auto-badge off" id="lovat-auto-badge">Auto: --:--</span></button>
       <button class="tab-btn" onclick="switchTabById('tab-alerts',this)">Alerts<div class="alert-icons"><span class="alert-icon-lbl alert-icon-ann dim" style="font-size:11px">📢</span><span class="alert-icon-count alert-count-ann dim" id="alert-count-ann-dyn">0</span><span class="alert-icon-lbl alert-icon-parts dim" style="font-size:11px">🔧</span><span class="alert-icon-count alert-count-parts dim" id="alert-count-parts-dyn">0</span></div></button>`;
     // Re-apply alert badge count
     rAlerts();
+    updateLovatAutoOpen();
   }
 }
 

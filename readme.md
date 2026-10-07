@@ -21,6 +21,9 @@ Created by Mike King — [Team 88 TJ²](https://www.tj2.org/)
 * 📊 **Event Rankings** — live rankings table with your team highlighted. Clicking any team number opens their EPA stats
 * 👕 **My Team** — team info, ranking, record, RP, next match alliance breakdown, and played match history with W/L/T and clickable match replays
 * 📢 **Alerts** — Nexus announcements (📢) and parts requests (🔧) with separate counts. Parts requests show pit location — click to open the pit map
+* 🧠 **Lovat Tab** — dedicated tab with next 3 matches, with/against teams, opponent intel, confidence, and pinned strategy notes
+* 🪟 **Auto Intel Popup** — next-match intel window auto-opens 5 minutes before queue (manual open always available, close persists for that match)
+* 👑 **Captain Tracker** — after quals, shows current alliance-captain pool and updates as picks happen and slots clear
 * 🗺 **Pit Map** — full pit map overlay rendered from Nexus data. Requested team highlighted in cyan, your team in gold. Handles events with no pit map gracefully
 * 📈 **EPA Stats** — full-screen EPA overlay powered by Statbotics. Per-match line charts for each component, tooltips, event dividers, and current-event filter
 * 🤝 **Alliance EPA** — clicking a team in the Queuing Status alliance grid opens a side-by-side EPA comparison for all 6 teams in the match
@@ -68,6 +71,13 @@ const LOVAT_INTEL_INTERNET_ENDPOINT = 'https://your-api-host/next-match-intel';
 const LOVAT_INTEL_ENDPOINT = 'http://localhost:8090/api/next-match-intel';
 const LOVAT_KEY = 'YOUR_LOVAT_KEY';
 ```
+
+Usage behavior:
+- Lovat tab shows up to the next 3 matches
+- Popup auto-opens 5 minutes before queueing for your next match
+- Manual popup open is available from the Lovat tab
+- Closing popup suppresses auto-open for that same match
+- Captain tracker activates after quals complete and before playoffs begin
 
 1. Copy `.env.example` to `.env`
 2. Fill in:

@@ -289,7 +289,7 @@ body.page-has-bg .tp{
 }
 
 /* Setup page z-index handled by its own rule (10000) */
-#app{display:grid;grid-template-rows:var(--hdr-h) 1fr var(--ftr-h);width:100vw;height:100vh;overflow:hidden}
+#app{display:grid;grid-template-rows:var(--hdr-h) auto 1fr var(--ftr-h);width:100vw;height:100vh;overflow:hidden}
 
 /* HEADER */
 .hdr{background-color:var(--surface);background-image:linear-gradient(rgba(var(--hdr-bg-washout-color),var(--hdr-bg-washout)),rgba(var(--hdr-bg-washout-color),var(--hdr-bg-washout))),var(--hdr-bg-image);background-size:cover;background-position:var(--hdr-bg-pos);background-repeat:no-repeat;border-bottom:3px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);gap:12px;overflow:hidden}
@@ -354,6 +354,9 @@ button.live-pill:hover{color:var(--text)}
 #stale-banner button{margin-left:auto;background:transparent;border:none;color:#fff;font-size:1.2rem;line-height:1;cursor:pointer;padding:2px 8px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 .hdr-clk{font-family:var(--fm);font-size:var(--fs-hdr);color:var(--text-mid);white-space:nowrap}
+.intel-warning-banner{display:none;background:rgba(255,23,68,.13);border-bottom:2px solid rgba(255,23,68,.4);padding:7px var(--pad);font-family:var(--fd);font-size:var(--fs-lbl);font-weight:700;color:#ffb3c1;letter-spacing:.03em}
+.intel-warning-banner.show{display:block}
+[data-theme="tj2"] .intel-warning-banner{background:rgba(245,192,0,.18);border-bottom-color:rgba(245,192,0,.45);color:#ffefb3}
 
 /* BODY */
 .body{display:grid;grid-template-columns:1fr 5px 380px;overflow:hidden;min-height:0}
@@ -1222,6 +1225,52 @@ button.live-pill:hover{color:var(--text)}
 .nm-chips{display:flex;gap:4px;flex-wrap:wrap}
 .nm-none{font-family:var(--fd);font-size:var(--fs-sm);color:var(--text-dim)}
 .nm-queue{font-family:var(--fm);font-size:var(--fs-sm);color:var(--text-dim);margin-top:4px}
+.nm-intel-card{margin-top:8px;border:1px solid var(--border2);border-radius:6px;padding:8px;background:rgba(0,0,0,.12)}
+.nm-intel-title{font-family:var(--fd);font-size:var(--fs-sm);font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.nm-intel-row{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border2)}
+.nm-intel-row:first-of-type{border-top:none;padding-top:2px}
+.nm-intel-team{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--text)}
+.nm-intel-summary,.nm-intel-note{font-family:var(--fd);font-size:var(--fs-sm);color:var(--text);line-height:1.35}
+.nm-intel-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.nm-intel-tag{font-family:var(--fd);font-size:var(--fs-sm);font-weight:700;border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--text-dim)}
+.nm-intel-warn{margin-top:8px;border:1px solid rgba(255,23,68,.45);border-radius:6px;padding:8px;background:rgba(255,23,68,.12);font-family:var(--fd);font-size:var(--fs-sm);color:#ffb3c1}
+.lovat-auto-badge{display:block;margin-top:2px;font-family:var(--fm);font-size:var(--fs-sm);color:var(--yellow);line-height:1}
+.lovat-auto-badge.off{display:none}
+[data-theme="tj2"] .lovat-auto-badge{color:#f5c000}
+[data-theme="tj2"] #tab-lovat{background:#10213a}
+[data-theme="tj2"] #tab-lovat .sbl{color:#f5c000;border-color:rgba(255,255,255,.25)}
+[data-theme="tj2"] #tab-lovat .lov-card{background:rgba(20,60,130,.75);border-color:rgba(255,255,255,.2)}
+[data-theme="tj2"] #tab-lovat .lov-match{color:#fff}
+[data-theme="tj2"] #tab-lovat .lov-note{background:rgba(13,30,61,.7);border-color:rgba(255,255,255,.22);color:#fff}
+[data-theme="tj2"] #tab-lovat .lov-captain{background:rgba(13,30,61,.7);border-color:rgba(255,255,255,.22)}
+[data-theme="tj2"] #lovat-popup-window{background:rgba(13,30,61,.96);border-color:rgba(245,192,0,.4)}
+[data-theme="tj2"] #lovat-popup-window .sbl{color:#f5c000}
+[data-theme="tj2"] #lovat-popup-window .lov-card{background:rgba(20,60,130,.7);border-color:rgba(255,255,255,.2)}
+.lov-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.lov-meta{font-family:var(--fm);font-size:var(--fs-sm);color:var(--text-dim)}
+.lov-meta.ok{color:var(--green)}
+.lov-meta.warn{color:var(--yellow)}
+.lov-meta.err{color:var(--red)}
+.lov-cards{display:flex;flex-direction:column;gap:8px}
+.lov-card{border:2px solid var(--border2);border-radius:var(--r);padding:9px 10px;background:var(--surface2)}
+.lov-match{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--accent)}
+.lov-alliances{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.lov-side-lbl{font-family:var(--fd);font-size:var(--fs-sm);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.lov-teams{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:700;color:var(--text)}
+.lov-intel{margin-top:7px}
+.lov-note{width:100%;resize:vertical;min-height:54px;max-height:160px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text);font-family:var(--fd);font-size:var(--fs-sm)}
+.lov-captain-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.lov-captain{border:1px solid var(--border2);border-radius:6px;padding:7px 9px;background:var(--surface2)}
+.lov-captain-h{display:flex;justify-content:space-between;gap:8px}
+.lov-captain-seed{font-family:var(--fd);font-size:var(--fs-sm);font-weight:900;color:var(--accent)}
+.lov-captain-team{font-family:var(--fd);font-size:var(--fs-lbl);font-weight:900;color:var(--text)}
+#lovat-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:flex-start;justify-content:center;padding-top:82px;z-index:7600}
+#lovat-popup-overlay.show{display:flex}
+#lovat-popup-window{width:min(980px,92vw);max-height:74vh;overflow:auto;background:var(--surface);border:2px solid var(--border2);border-radius:10px;padding:12px}
+[data-theme="tj2"] .nm-intel-card{background:rgba(13,30,61,.38);border-color:rgba(255,255,255,.2)}
+[data-theme="tj2"] .nm-intel-title{color:#f5c000}
+[data-theme="tj2"] .nm-intel-tag{border-color:rgba(255,255,255,.24);color:#fff3ca}
+[data-theme="tj2"] .nm-intel-warn{background:rgba(245,192,0,.15);border-color:rgba(245,192,0,.45);color:#ffefb3}
 
 /* BRACKET ALLIANCE LEGEND — 4×2 grid of cards */
 .bkt-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px var(--pad);border-top:2px solid var(--border);background:var(--surface);flex-shrink:0}
@@ -1576,6 +1625,15 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <div class="setup-err" id="setup-err">Please enter a team number and select or type an event code.</div>
     </div>
 
+    <div class="setup-field">
+      <label class="setup-label" for="setup-intel-source">Opponent Intel Source</label>
+      <select class="setup-select" id="setup-intel-source">
+        <option value="internet">Internet</option>
+        <option value="meshtastic">Meshtastic bridge (default)</option>
+      </select>
+      <div class="setup-hint">Internet pulls from the configured Lovat API endpoint. Meshtastic uses the local bridge endpoint.</div>
+    </div>
+
     <div class="setup-field theme-switcher">
       <label class="setup-label">Theme</label>
       <div class="theme-swatches" id="theme-swatches"><!-- rendered by renderThemeSwatches() --></div>
@@ -1620,6 +1678,7 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <button class="help-btn" id="mobile-menu-btn" onclick="openMobileMenu()" title="Menu" aria-label="Menu">&#9776;</button>
     </div>
   </div>
+  <div id="intel-warning-banner" class="intel-warning-banner"></div>
 
   <div class="body" id="body-row">
     <div class="col-l" id="col-l">
@@ -1667,6 +1726,7 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       <div class="tab-bar">
         <button class="tab-btn act" onclick="switchTab('rankings',this)">Rankings</button>
         <button class="tab-btn" onclick="switchTab('team',this)">My Team</button>
+        <button class="tab-btn" onclick="switchTab('lovat',this)">Lovat<span class="lovat-auto-badge off" id="lovat-auto-badge">Auto: --:--</span></button>
         <button class="tab-btn" onclick="switchTab('alerts',this)">Alerts<div class="alert-icons"><span class="alert-icon-lbl alert-icon-ann dim" id="alert-icon-ann-1" style="font-size:11px">📢</span><span class="alert-icon-count alert-count-ann dim" id="alert-count-ann-1">0</span><span class="alert-icon-lbl alert-icon-parts dim" id="alert-icon-parts-1" style="font-size:11px">🔧</span><span class="alert-icon-count alert-count-parts dim" id="alert-count-parts-1">0</span></div></button>
       </div>
       <div class="tp act" id="tab-rankings">
@@ -1674,6 +1734,22 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
         <div id="rank-content"><div class="skel" style="width:100%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:88%"></div></div>
       </div>
       <div class="tp" id="tab-team"><div id="team-content"></div></div>
+      <div class="tp" id="tab-lovat">
+        <div class="sbl" style="margin-top:0">Lovat Match Intel</div>
+        <div class="lov-toolbar">
+          <button class="s-btn" onclick="openLovatPopup(true)">Open Next Match Window</button>
+          <button class="s-btn" onclick="fetchLovatIntel()">Refresh Intel</button>
+          <span class="lov-meta" id="lovat-last-updated">Last updated: --</span>
+        </div>
+        <div class="lov-toolbar" style="margin-top:6px">
+          <span class="lov-meta" id="lovat-stale">Status: waiting</span>
+          <span class="lov-meta" id="lovat-mode">Mode: --</span>
+        </div>
+        <div class="sbl">Upcoming 3 Matches</div>
+        <div class="lov-cards" id="lovat-upcoming-list"><div class="empty">No upcoming match intel</div></div>
+        <div class="sbl">Captain Tracker</div>
+        <div id="lovat-captains-wrap"><div class="empty">Captain tracker inactive (waiting for end of quals).</div></div>
+      </div>
       <div class="tp" id="tab-alerts">
         <div class="sbl" style="margin-top:0">Announcements</div>
         <div id="ann-content"><div class="empty">No announcements</div></div>
@@ -1857,6 +1933,17 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
       </div>
       <div id="set-results" style="font-family:var(--fd);font-size:var(--fs-lbl)"></div>
     </div>
+
+    <div id="lovat-popup-overlay" onclick="if(event.target===this)closeLovatPopup()">
+      <div id="lovat-popup-window">
+        <div class="lov-toolbar">
+          <div class="sbl" style="margin:0;border:none">Next Match Lovat Intel</div>
+          <button class="s-btn" onclick="closeLovatPopup()">Close</button>
+        </div>
+        <div class="lov-meta" id="lovat-popup-meta">Waiting for queue timing…</div>
+        <div class="lov-cards" id="lovat-popup-body" style="margin-top:8px"><div class="empty">No intel yet</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- SCHEDULE OVERLAY -->
@@ -1899,11 +1986,30 @@ body.pit-xl .rt th{ font-size:var(--fs-pit) !important; }
 // ============================================================
 
 const C={team:'',event:'',nexus:KEYS.nexus||'',tba:KEYS.tba||'',youtube:KEYS.youtube||''};
+const INTEL_CFG = {
+  enabled: typeof LOVAT_INTEL_ENABLED !== 'undefined' ? !!LOVAT_INTEL_ENABLED : true,
+  sourceDefault: typeof LOVAT_INTEL_SOURCE_DEFAULT !== 'undefined' ? String(LOVAT_INTEL_SOURCE_DEFAULT).toLowerCase() : 'meshtastic',
+  bridgeEndpoint: typeof LOVAT_INTEL_ENDPOINT !== 'undefined' ? LOVAT_INTEL_ENDPOINT : 'http://localhost:8090/api/next-match-intel',
+  internetEndpoint: typeof LOVAT_INTEL_INTERNET_ENDPOINT !== 'undefined' ? LOVAT_INTEL_INTERNET_ENDPOINT : '',
+  internetKey: typeof LOVAT_KEY !== 'undefined' ? LOVAT_KEY : '',
+  pollMs: typeof LOVAT_INTEL_POLL_MS !== 'undefined' ? LOVAT_INTEL_POLL_MS : 10000,
+  source: 'internet'
+};
+let lovatIntelState = { available:false, reason:'not_checked', opponents:[], matchKey:null, tbaNextMatchKey:null };
+let lovatIntelPollId = null;
+let lovatIntelCache = {};
+let lovatAutoPopupDismissedMatchKey = null;
+let lovatAutoPopupShownMatchKey = null;
+let lovatAutoPopupMatchKey = null;
+let lovatLastUpdatedAt = null;
+let lovatLastSource = null;
 
 // ── SETUP PAGE ───────────────────────────────────────────────────────────────
 
 const LS_TEAM  = 'pitfusion_team';
 const LS_EVENT = 'pitfusion_event';
+const LS_INTEL_SOURCE = 'pitfusion_intel_source';
+const LS_LOVAT_NOTES = 'pitfusion_lovat_notes';
 
 // localStorage *throws* on an opaque origin (a data: URL, some sandboxed or
 // embedded contexts) — not merely when storage is full. Several reads below run
@@ -2046,8 +2152,12 @@ function selectTheme(t){
 (function restoreSaved(){
   const t = lsGet(LS_TEAM);
   const ev = lsGet(LS_EVENT);
+  const src = (lsGet(LS_INTEL_SOURCE, INTEL_CFG.sourceDefault || 'meshtastic') || 'meshtastic').toLowerCase();
   if(t)  document.getElementById('setup-team').value  = t;
   if(ev) document.getElementById('setup-event-manual').value = ev;
+  INTEL_CFG.source = src === 'meshtastic' ? 'meshtastic' : 'internet';
+  const srcEl=document.getElementById('setup-intel-source');
+  if(srcEl) srcEl.value = INTEL_CFG.source;
 })();
 
 // ── EVENT DROPDOWN — team-aware filtering ────────────────────────────────────
@@ -2192,6 +2302,7 @@ function setupLaunch(){
   const teamInput = document.getElementById('setup-team').value.trim();
   const dropVal   = document.getElementById('setup-event-dropdown').value.trim();
   const manualVal = document.getElementById('setup-event-manual').value.trim().toLowerCase();
+  const intelSourceVal = (document.getElementById('setup-intel-source')?.value || INTEL_CFG.sourceDefault || 'meshtastic').toLowerCase();
   const errEl     = document.getElementById('setup-err');
 
   const eventKey = manualVal || dropVal;
@@ -2218,9 +2329,11 @@ function setupLaunch(){
 
   localStorage.setItem(LS_TEAM,  teamInput);
   localStorage.setItem(LS_EVENT, eventKey);
+  localStorage.setItem(LS_INTEL_SOURCE, intelSourceVal === 'meshtastic' ? 'meshtastic' : 'internet');
 
   C.team  = teamInput;
   C.event = eventKey;
+  INTEL_CFG.source = intelSourceVal === 'meshtastic' ? 'meshtastic' : 'internet';
 
   document.getElementById('setup-page').classList.add('hidden');
   document.getElementById('app').style.display = '';
@@ -2622,6 +2735,404 @@ function apiUrl(u){
 }
 async function get(url,h){const r=await fetch(apiUrl(url),{headers:h,cache:'no-store'});if(!r.ok)throw r.status;return r.json();}
 
+function expectedNextTbaMatchKey(){
+  if(!tbaMx?.length||!C.team) return null;
+  const mine=tbaMx
+    .filter(m=>{
+      if(m.actual_time!=null) return false;
+      const r=(m.alliances?.red?.team_keys||[]);
+      const bl=(m.alliances?.blue?.team_keys||[]);
+      const me=`frc${C.team}`;
+      return r.includes(me)||bl.includes(me);
+    })
+    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0));
+  return mine[0]?.key||null;
+}
+
+function intelWarningMessage(reason){
+  const map={
+    not_checked:'Waiting for opponent intel…',
+    bridge_unreachable:'Opponent intel bridge is unreachable',
+    internet_not_configured:'Internet intel endpoint is not configured',
+    internet_auth_missing:'Lovat internet API key is missing',
+    internet_api_error:'Internet intel API request failed',
+    no_payload:'No opponent intel packet received yet',
+    no_next_match:'No next match currently known',
+    stale_payload:'Opponent intel is stale',
+    expired_payload:'Opponent intel has expired',
+    match_mismatch:'Opponent intel does not match TBA next match',
+    event_mismatch:'Opponent intel event does not match current event',
+    signature_mismatch:'Opponent intel signature mismatch',
+    missing_hmac_secret:'Bridge HMAC secret is missing',
+    missing_signature:'Opponent intel is unsigned',
+    unsupported_schema:'Opponent intel schema is unsupported',
+    invalid_payload:'Opponent intel payload is invalid',
+    invalid_generated_at:'Opponent intel timestamp is invalid',
+    meshtastic_dependency_missing:'Bridge is missing Meshtastic dependency',
+    packet_parse_error:'Bridge could not parse incoming packet'
+  };
+  return map[reason]||'Opponent intel unavailable';
+}
+
+function compLabel(m){
+  if(!m) return 'Match';
+  if(m.comp_level==='qm') return `Qual ${m.match_number}`;
+  if(m.comp_level==='sf') return `Playoff ${m.set_number||m.match_number||''}`.trim();
+  if(m.comp_level==='f')  return `Final ${m.match_number}`;
+  return m.key||'Match';
+}
+
+function getMyUpcomingMatches(limit=3){
+  if(!tbaMx?.length||!C.team) return [];
+  const me=`frc${C.team}`;
+  return tbaMx
+    .filter(m=>{
+      if(m.actual_time!=null) return false;
+      const r=(m.alliances?.red?.team_keys||[]);
+      const bl=(m.alliances?.blue?.team_keys||[]);
+      return r.includes(me)||bl.includes(me);
+    })
+    .sort((a,b)=>(a.predicted_time||a.time||0)-(b.predicted_time||b.time||0))
+    .slice(0,limit)
+    .map(m=>{
+      const red=(m.alliances?.red?.team_keys||[]).map(k=>String(k).replace('frc',''));
+      const blue=(m.alliances?.blue?.team_keys||[]).map(k=>String(k).replace('frc',''));
+      const isRed=(m.alliances?.red?.team_keys||[]).includes(me);
+      const withTeams=(isRed?red:blue).filter(t=>t!==C.team);
+      const oppTeams=isRed?blue:red;
+      return {
+        raw:m,
+        matchKey:m.key||null,
+        label:compLabel(m),
+        withTeams,
+        oppTeams,
+        myAlliance:isRed?'red':'blue',
+      };
+    });
+}
+
+function getNextMatchContext(){
+  const m=getMyUpcomingMatches(1)[0];
+  if(!m) return null;
+  return { matchKey:m.matchKey, opponents:m.oppTeams.slice(0,3) };
+}
+
+function getNextQueueCountdownMs(){
+  if(!nxData?.matches?.length) return null;
+  const SKIP=new Set(['Completed','On field']);
+  const nxt=(nxData.matches||[]).find(m=>!SKIP.has(m.status)&&[...(m.redTeams||[]),...(m.blueTeams||[])].includes(C.team));
+  if(!nxt) return null;
+  const qt=nxt.times?.estimatedQueueTime||nxt.times?.actualQueueTime;
+  if(!qt) return null;
+  return qt-Date.now();
+}
+
+function loadLovatNotes(){
+  try{return JSON.parse(localStorage.getItem(LS_LOVAT_NOTES)||'{}')||{};}catch{return {};}
+}
+
+function saveLovatNote(matchKey,val){
+  if(!matchKey) return;
+  const notes=loadLovatNotes();
+  notes[matchKey]=String(val||'');
+  localStorage.setItem(LS_LOVAT_NOTES, JSON.stringify(notes));
+}
+
+function getLovatNote(matchKey){
+  if(!matchKey) return '';
+  const notes=loadLovatNotes();
+  return notes[matchKey]||'';
+}
+
+function normalizeInternetIntel(data, expectedMatchKey, fallbackOpponents){
+  const list = Array.isArray(data?.opponents) ? data.opponents : (Array.isArray(data) ? data : []);
+  const parsed={};
+  list.forEach(row=>{
+    if(!row) return;
+    const team=String(row.team ?? row.teamNumber ?? row.t ?? row.team_key ?? '').replace('frc','');
+    if(!team) return;
+    parsed[team]={
+      team,
+      summary: String(row.summary ?? row.s ?? row.intel ?? 'Scouting summary unavailable'),
+      tags: Array.isArray(row.tags) ? row.tags.map(String).slice(0,3) : (Array.isArray(row.tg) ? row.tg.map(String).slice(0,3) : []),
+      notes: String(row.notes ?? row.n ?? ''),
+      confidence: Number(row.confidence ?? row.c ?? row.score ?? NaN)
+    };
+  });
+  const normalized=(fallbackOpponents||[]).slice(0,3).map(team=>parsed[String(team)]||{
+    team:String(team),
+    summary:'Scouting data unavailable',
+    tags:['missing'],
+    notes:'No Lovat data row for this team',
+    confidence:NaN
+  });
+  return {
+    available: normalized.length>0,
+    reason: normalized.length>0 ? 'ok' : 'no_payload',
+    opponents: normalized,
+    matchKey: (data?.matchKey || data?.mk || expectedMatchKey || null),
+    tbaNextMatchKey: expectedMatchKey || null
+  };
+}
+
+function updateIntelBanner(){
+  const el=document.getElementById('intel-warning-banner');
+  if(!el) return;
+  const next=expectedNextTbaMatchKey();
+  if(!INTEL_CFG.enabled||!next){
+    el.classList.remove('show');
+    el.textContent='';
+    return;
+  }
+  if(lovatIntelState.available){
+    el.classList.remove('show');
+    el.textContent='';
+    return;
+  }
+  el.textContent='⚠ '+intelWarningMessage(lovatIntelState.reason);
+  el.classList.add('show');
+}
+
+function renderIntelRows(opponents){
+  const rows=(opponents||[]).slice(0,3).map(o=>{
+    const tags=(o.tags||[]).slice(0,3).map(t=>`<span class="nm-intel-tag">${e(t)}</span>`).join('');
+    const conf=Number.isFinite(Number(o.confidence)) ? `${Math.round(Number(o.confidence)*100)}%` : 'n/a';
+    return `<div class="nm-intel-row">
+      <div class="nm-intel-team">Team ${e(o.team||'?')} <span style="font-size:.9em;color:var(--text-dim)">Confidence: ${e(conf)}</span></div>
+      <div class="nm-intel-summary">${e(o.summary||'No summary')}</div>
+      ${tags?`<div class="nm-intel-tags">${tags}</div>`:''}
+      ${o.notes?`<div class="nm-intel-note">${e(o.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+  return rows||`<div class="nm-intel-warn">⚠ No intel rows</div>`;
+}
+
+function renderCaptainTracker(){
+  const wrap=document.getElementById('lovat-captains-wrap');
+  if(!wrap) return;
+  const rankings=tbaRk?.rankings||[];
+  if(!rankings.length){wrap.innerHTML='<div class="empty">No rankings data for captain tracker.</div>';return;}
+  const quals=(tbaMx||[]).filter(m=>m.comp_level==='qm');
+  const qualsDone=quals.length>0&&quals.every(m=>m.actual_time!=null);
+  const playoffsStarted=(tbaMx||[]).some(m=>m.comp_level!=='qm'&&m.actual_time!=null);
+  if(!qualsDone||playoffsStarted){
+    wrap.innerHTML='<div class="empty">Captain tracker inactive (waiting for end of quals).</div>';
+    return;
+  }
+  const allRanks=rankings.map(r=>String(r.team_key||'').replace('frc','')).filter(Boolean);
+  const picked=(tbaAlliances||[]).flatMap(a=>(a.picks||[]).map(k=>String(k).replace('frc','')));
+  const existingCaptains=(tbaAlliances||[]).map(a=>String((a.picks||[])[0]||'').replace('frc','')).filter(Boolean);
+  const captainCount=Math.min(8, allRanks.length);
+  const captains=[...existingCaptains];
+  for(const t of allRanks){
+    if(captains.length>=captainCount) break;
+    if(captains.includes(t)) continue;
+    if(picked.includes(t)) continue;
+    captains.push(t);
+  }
+  const rankMap={}; rankings.forEach(r=>{rankMap[String(r.team_key||'').replace('frc','')]=r;});
+  const cards=captains.map((team,idx)=>{
+    const rr=rankMap[team];
+    const rec=rr?.record?`${rr.record.wins}-${rr.record.losses}-${rr.record.ties}`:'—';
+    const al=(tbaAlliances||[]).find(a=>String((a.picks||[])[0]||'').replace('frc','')===team);
+    const picks=(al?.picks||[]).map(k=>String(k).replace('frc','')).slice(1);
+    return `<div class="lov-captain">
+      <div class="lov-captain-h"><span class="lov-captain-seed">Captain ${idx+1}</span><span class="lov-captain-team">${e(team)}</span></div>
+      <div class="lov-meta">Rank: ${e(String(rr?.rank||'—'))} · Record: ${e(rec)}</div>
+      <div class="lov-meta">Picks: ${picks.length?e(picks.join(' · ')):'(open slot)'}</div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="lov-captain-grid">${cards}</div>`;
+}
+
+function renderLovatMatchCard(m, compact=false){
+  const cached=lovatIntelCache[m.matchKey]||{};
+  const withTxt=m.withTeams.length?m.withTeams.join(' · '):'TBD';
+  const againstTxt=m.oppTeams.length?m.oppTeams.join(' · '):'TBD';
+  const note=getLovatNote(m.matchKey);
+  const safeKey=String(m.matchKey||'').replace(/'/g,"\\'");
+  const intelBlock=(cached.available&&cached.matchKey===m.matchKey)
+    ? `<div class="nm-intel-card"><div class="nm-intel-title">Opponent Intel</div>${renderIntelRows(cached.opponents||[])}</div>`
+    : `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(cached.reason||'no_payload'))}</div>`;
+  return `<div class="lov-card">
+    <div class="lov-match">${e(m.label)} <span style="font-size:.9em;color:var(--text-dim)">(${e(m.matchKey||'')})</span></div>
+    <div class="lov-alliances">
+      <div><div class="lov-side-lbl">With</div><div class="lov-teams">${e(withTxt)}</div></div>
+      <div><div class="lov-side-lbl">Against</div><div class="lov-teams">${e(againstTxt)}</div></div>
+    </div>
+    <div class="lov-intel">${intelBlock}</div>
+    ${compact?'':`<div class="lov-side-lbl" style="margin-top:7px">Pinned strategy notes</div>
+    <textarea class="lov-note" onchange="saveLovatNote('${safeKey}', this.value)" placeholder="Add strategy note for this match...">${e(note)}</textarea>`}
+  </div>`;
+}
+
+function renderLovatPanel(){
+  const list=document.getElementById('lovat-upcoming-list');
+  const stale=document.getElementById('lovat-stale');
+  const mode=document.getElementById('lovat-mode');
+  const last=document.getElementById('lovat-last-updated');
+  if(mode) mode.textContent=`Mode: ${INTEL_CFG.source==='meshtastic'?'Meshtastic':'Internet'}`;
+  if(last) last.textContent=`Last updated: ${lovatLastUpdatedAt?new Date(lovatLastUpdatedAt).toLocaleTimeString():'--'}${lovatLastSource?` · ${lovatLastSource}`:''}`;
+  const age=lovatLastUpdatedAt?Math.floor((Date.now()-lovatLastUpdatedAt)/1000):null;
+  if(stale){
+    stale.className='lov-meta';
+    if(age==null){
+      stale.textContent='Status: waiting';
+      stale.classList.add('warn');
+    }else if(age>120){
+      stale.textContent=`Status: stale (${age}s ago)`;
+      stale.classList.add('err');
+    }else{
+      stale.textContent=`Status: fresh (${age}s ago)`;
+      stale.classList.add('ok');
+    }
+  }
+  const matches=getMyUpcomingMatches(3);
+  if(list){
+    list.innerHTML=matches.length?matches.map(m=>renderLovatMatchCard(m,false)).join(''):'<div class="empty">No upcoming match intel</div>';
+  }
+  renderCaptainTracker();
+}
+
+function openLovatPopup(manual=false){
+  const ov=document.getElementById('lovat-popup-overlay');
+  const body=document.getElementById('lovat-popup-body');
+  const meta=document.getElementById('lovat-popup-meta');
+  const nxt=getMyUpcomingMatches(1)[0];
+  if(!ov||!body||!meta) return;
+  if(!nxt){
+    body.innerHTML='<div class="empty">No next match available.</div>';
+    meta.textContent='No queue timing data.';
+  } else {
+    body.innerHTML=renderLovatMatchCard(nxt,true);
+    const ms=getNextQueueCountdownMs();
+    const cd=ms==null?'Queue timing unavailable':`Queue in ${Math.max(0,Math.floor(ms/60000))}:${String(Math.max(0,Math.floor(ms/1000)%60)).padStart(2,'0')}`;
+    const lu=lovatLastUpdatedAt?` · Updated ${new Date(lovatLastUpdatedAt).toLocaleTimeString()}`:'';
+    meta.textContent=`${cd}${lu}`;
+  }
+  ov.classList.add('show');
+  if(!manual&&nxt?.matchKey) lovatAutoPopupShownMatchKey=nxt.matchKey;
+}
+
+function closeLovatPopup(){
+  const ov=document.getElementById('lovat-popup-overlay');
+  if(ov) ov.classList.remove('show');
+  const nxt=getMyUpcomingMatches(1)[0];
+  if(nxt?.matchKey) lovatAutoPopupDismissedMatchKey=nxt.matchKey;
+}
+
+function updateLovatAutoOpen(){
+  const badge=document.getElementById('lovat-auto-badge');
+  const nxt=getMyUpcomingMatches(1)[0];
+  const ms=getNextQueueCountdownMs();
+  if(nxt?.matchKey && lovatAutoPopupMatchKey!==nxt.matchKey){
+    lovatAutoPopupMatchKey=nxt.matchKey;
+    lovatAutoPopupDismissedMatchKey=null;
+    lovatAutoPopupShownMatchKey=null;
+  }
+  if(!badge||!nxt||ms==null||ms<=0){
+    if(badge){badge.textContent='Auto: --:--';badge.classList.add('off');}
+    return;
+  }
+  const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60;
+  badge.textContent=`Auto: ${m}:${String(s).padStart(2,'0')}`;
+  badge.classList.remove('off');
+  if(ms<=300000&&lovatAutoPopupDismissedMatchKey!==nxt.matchKey&&lovatAutoPopupShownMatchKey!==nxt.matchKey){
+    openLovatPopup(false);
+  }
+}
+
+async function fetchInternetIntelForMatch(ctx){
+  if(!INTEL_CFG.internetEndpoint){
+    return {available:false,reason:'internet_not_configured',opponents:[],matchKey:ctx.matchKey,tbaNextMatchKey:ctx.matchKey};
+  }
+  const url = new URL(INTEL_CFG.internetEndpoint);
+  url.searchParams.set('eventKey', C.event);
+  url.searchParams.set('matchKey', ctx.matchKey);
+  url.searchParams.set('team', C.team);
+  url.searchParams.set('opponents', (ctx.oppTeams||[]).join(','));
+  const headers={};
+  if(INTEL_CFG.internetKey && !/^YOUR_/i.test(INTEL_CFG.internetKey)){
+    headers['X-API-Key']=INTEL_CFG.internetKey;
+    headers['Lovat-Api-Key']=INTEL_CFG.internetKey;
+  }
+  const r=await fetch(url.toString(),{headers,cache:'no-store'});
+  if(!r.ok) throw new Error(String(r.status));
+  const data=await r.json();
+  return normalizeInternetIntel(data, ctx.matchKey, ctx.oppTeams||[]);
+}
+
+async function fetchLovatIntel(){
+  if(!INTEL_CFG.enabled) return;
+  const matches=getMyUpcomingMatches(3);
+  if(!matches.length){
+    lovatIntelState={available:false,reason:'no_next_match',opponents:[],matchKey:null,tbaNextMatchKey:null};
+    updateIntelBanner();
+    renderLovatPanel();
+    rTeam();
+    return;
+  }
+  try{
+    if(INTEL_CFG.source==='meshtastic'){
+      const r=await fetch(INTEL_CFG.bridgeEndpoint,{cache:'no-store'});
+      if(!r.ok) throw new Error(String(r.status));
+      const bridge=await r.json();
+      matches.forEach(m=>{
+        if(bridge.available&&bridge.matchKey===m.matchKey){
+          lovatIntelCache[m.matchKey]={...bridge,updatedAt:Date.now(),source:'meshtastic'};
+        }else{
+          lovatIntelCache[m.matchKey]={available:false,reason:bridge.reason||'match_mismatch',opponents:[],matchKey:m.matchKey,updatedAt:Date.now(),source:'meshtastic'};
+        }
+      });
+    }else{
+      await Promise.all(matches.map(async m=>{
+        try{
+          const data=await fetchInternetIntelForMatch(m);
+          lovatIntelCache[m.matchKey]={...data,updatedAt:Date.now(),source:'internet'};
+        }catch{
+          lovatIntelCache[m.matchKey]={available:false,reason:'internet_api_error',opponents:[],matchKey:m.matchKey,updatedAt:Date.now(),source:'internet'};
+        }
+      }));
+    }
+    const nxt=matches[0];
+    lovatIntelState=lovatIntelCache[nxt.matchKey]||{available:false,reason:'no_payload',opponents:[],matchKey:nxt.matchKey};
+    lovatLastUpdatedAt=Date.now();
+    lovatLastSource=INTEL_CFG.source;
+  }catch{
+    const nxt=matches[0];
+    lovatIntelState={available:false,reason:INTEL_CFG.source==='meshtastic'?'bridge_unreachable':'internet_api_error',opponents:[],matchKey:nxt?.matchKey||null,tbaNextMatchKey:nxt?.matchKey||null};
+    lovatLastUpdatedAt=Date.now();
+  }
+  updateIntelBanner();
+  renderLovatPanel();
+  updateLovatAutoOpen();
+  rTeam();
+}
+
+function startLovatIntelPolling(){
+  if(!INTEL_CFG.enabled) return;
+  fetchLovatIntel();
+  clearInterval(lovatIntelPollId);
+  lovatIntelPollId=setInterval(fetchLovatIntel, Math.max(3000, Number(INTEL_CFG.pollMs)||10000));
+}
+
+function renderOpponentIntelBlock(expectedMatchKey){
+  if(!INTEL_CFG.enabled) return '';
+  if(!expectedMatchKey) return '';
+  const src=lovatIntelCache[expectedMatchKey]||lovatIntelState;
+  if(!src?.available){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage(src?.reason||'no_payload'))}</div>`;
+  }
+  if(src.matchKey!==expectedMatchKey){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('match_mismatch'))}</div>`;
+  }
+  const opponents=(src.opponents||[]).slice(0,3);
+  if(!opponents.length){
+    return `<div class="nm-intel-warn">⚠ ${e(intelWarningMessage('no_payload'))}</div>`;
+  }
+  return `<div class="nm-intel-card"><div class="nm-intel-title">Next Match Opponent Intel</div>${renderIntelRows(opponents)}</div>`;
+}
+
 async function nexusGet(key){return get(`https://frc.nexus/api/v1/event/${key}`,hn(C.nexus));}
 function nxKey(){return C.nexusEvent||C.event;}
 
@@ -2817,6 +3328,7 @@ async function init(){
   await Promise.all([fPits(),fMx(),fRk(),fAlliances(),fNxAlliances(),fTi(),fEv()]);
   document.getElementById('lo').style.display='none';
   renderAll(); startCd();
+  startLovatIntelPolling();
   fMyAdv().then(()=>rTeam());     // once, non-blocking; updates the My Team tab when ready
   fMyYear().then(()=>rTeam());    // EPA ranks row appears when Statbotics answers
   fPred().then(paintPred);        // prediction bars likewise
@@ -2901,6 +3413,7 @@ async function nexusTick(){
   const dg=nexusDigest();
   if(dg!==_lastDigest){ _lastDigest=dg; _quietSince=Date.now(); }
   rQ();rMl();rAlerts();rUpcoming();updateBumperBox();stamp();
+  renderLovatPanel(); updateLovatAutoOpen(); updateIntelBanner();
   if(bracketView)rBracket();else if(mobilePanel==='bracket')rBracketMobile();
 }
 
@@ -2918,6 +3431,7 @@ async function tbaTick(){
   await fMx();
   await Promise.all([fRk(),fAlliances(),fNxAlliances(),fTi(),fPits(),fMyYear(),fPred()]);
   rMl();rRank();rTeam();
+  renderLovatPanel(); updateLovatAutoOpen(); updateIntelBanner();
   if(bracketView)rBracket();else if(mobilePanel==='bracket')rBracketMobile();
   updateBumperBox();stamp();
 }
@@ -2926,12 +3440,13 @@ async function tbaTick(){
 function scheduleNexus(){clearTimeout(_nexusTimer);_nexusTimer=setTimeout(()=>{nexusTick().finally(scheduleNexus);},pollTier().nexus);}
 function scheduleTba(){clearTimeout(_tbaTimer);_tbaTimer=setTimeout(()=>{tbaTick().finally(scheduleTba);},pollTier().tba);}
 
-function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();updateBumperBox();stamp();}
+function renderAll(){rQ();rMl();rRank();rUpcoming();rTeam();rAlerts();rStream();renderLovatPanel();updateLovatAutoOpen();updateBumperBox();stamp();updateIntelBanner();}
 
 // HEADER COUNTDOWN
 function startCd(){clearInterval(cdTick);cdTick=setInterval(tickCd,1000);tickCd();}
 function tickCd(){
   const wrap=document.getElementById('hdr-cd');
+  updateLovatAutoOpen();
   if(!nxData){wrap.innerHTML='';return;}
   // Paused = Nexus isn't queuing: on a break, or before the first queue call. The
   // countdown still runs then, off whatever real time Nexus is still projecting
@@ -3813,6 +4328,7 @@ function rTeam(){
     const r=nxt.redTeams||[],bl=nxt.blueTeams||[],isR=r.includes(myT),ac=isR?'var(--red-a)':'var(--blue-a)',al=isR?'Red Alliance':'Blue Alliance';
     const part=(isR?r:bl).filter(t=>t!==myT),opp=isR?bl:r;
     const queueStr=ts2(nxt)!=='&mdash;'?`<div class="nm-queue">Est. queue: ${ts2(nxt)}</div>`:'';
+    const intelBlock=renderOpponentIntelBlock(expectedNextTbaMatchKey());
     html+=`<div class="sbl">Next Match</div>
     <div class="nm-card ${isR?'nm-red':'nm-blue'}">
       <div class="nm-header">
@@ -3826,6 +4342,7 @@ function rTeam(){
       <div class="nm-section-lbl" style="margin-top:8px">Opponents</div>
       <div class="nm-chips">${opp.map(t=>`<span class="chip ${isR?'cb':'cr'}">${e(t)}</span>`).join('')}</div>
       ${queueStr}
+      ${intelBlock}
     </div>`;
   }
   if(played.length){
@@ -4264,9 +4781,10 @@ function toggleBracket(){
     bktPnl.style.flex    = '1';
     bktPnl.style.minHeight = '0';
 
-    // 4. Sidebar: hide Rankings + My Team, show Queuing tab
+    // 4. Sidebar: hide Rankings + My Team + Lovat, show Queuing tab
     document.getElementById('tab-rankings').style.display = 'none';
     document.getElementById('tab-team').style.display     = 'none';
+    document.getElementById('tab-lovat').style.display    = 'none';
     rebuildTabBar(true);
     switchTabById('tab-queuing');
     syncQueueingToSidebar();
@@ -4308,6 +4826,7 @@ function toggleBracket(){
     // Restore sidebar
     document.getElementById('tab-rankings').style.display = '';
     document.getElementById('tab-team').style.display     = '';
+    document.getElementById('tab-lovat').style.display    = '';
     document.getElementById('tab-queuing').style.display  = 'none';
     document.getElementById('tab-queuing').classList.remove('act');
     rebuildTabBar(false);
@@ -4337,10 +4856,11 @@ function rebuildTabBar(bracketMode){
   const lead = bracketMode
     ? `<button class="tab-btn act" onclick="switchTabById('tab-queuing',this)">Queuing</button>`
     : `<button class="tab-btn act" onclick="switchTabById('tab-rankings',this)">Rankings</button>
-      <button class="tab-btn" onclick="switchTabById('tab-team',this)">My Team</button>`;
+      <button class="tab-btn" onclick="switchTabById('tab-team',this)">My Team</button>
+      <button class="tab-btn" onclick="switchTabById('tab-lovat',this)">Lovat<span class="lovat-auto-badge off" id="lovat-auto-badge">Auto: --:--</span></button>`;
   bar.innerHTML = lead + ALERTS_TAB_BTN;
   // Re-apply alert badge counts to the freshly built buttons.
-  if(!bracketMode) rAlerts();
+  if(!bracketMode){ rAlerts(); updateLovatAutoOpen(); }
 }
 
 function switchTabById(id, btn){

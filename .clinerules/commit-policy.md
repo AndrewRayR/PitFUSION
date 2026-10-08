@@ -16,6 +16,10 @@
 - After committing, verify the branch and commit status.
 - Do not rewrite published history or force-push.
 - Push completed major-change commits to origin/copilot/agents when the user has authorized the task to modify the remote repository.
+- NEVER create, open, submit, or update a GitHub Pull Request as part of normal work.
+- NEVER use a Pull Request as the mechanism for delivering changes to the user's repository.
+- The normal delivery mechanism is: edit local files -> test -> git add -> git commit -> git push origin copilot/agents.
+- Do not target another repository, upstream repository, or the default branch for changes unless the user explicitly requests it.
 
 ## Validation
 - Run the smallest relevant tests/checks after each major change before committing.
